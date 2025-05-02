@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ritian_faculty/screens/add_faculty_screen.dart';
+import 'package:ritian_faculty/screens/add_student_screen.dart';
+import 'package:ritian_faculty/screens/student_leave_requests_hod.dart';
+import 'package:ritian_faculty/screens/student_leave_requests_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
@@ -34,13 +38,17 @@ class MyApp extends StatelessWidget {
                 if (snapshot.hasData) {
                   return const HomeScreen();
                 }
-                return const LoginScreen();
+                return LoginScreen();
               },
             ),
         '/home': (context) => const HomeScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/first_time_sign_in': (context) => const FirstTimeSignInScreen(),
+        '/student_leave_requests': (context) => const StudentLeaveRequestsScreen(),
+        '/student_leave_requests_hod': (context) => const StudentLeaveRequestsHodScreen(),
+        '/add_students': (context) => AddStudentScreen(),
+        '/add_faculty': (context) => AddFacultyScreen(),
         '/under_construction': (context) => const UnderConstructionScreen(),
       },
     );
