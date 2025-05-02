@@ -75,6 +75,8 @@ class _AppDrawerState extends State<AppDrawer> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final facultyType = _userData?['faculty_type'] ?? '';
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
@@ -85,7 +87,7 @@ class _AppDrawerState extends State<AppDrawer> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _userData?['name'] ?? 'Name',
+                  _userData?['staff_code'] ?? 'Staff Code',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -133,125 +135,178 @@ class _AppDrawerState extends State<AppDrawer> {
               Navigator.pushReplacementNamed(context, '/under_construction');
             },
           ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Staff Edge'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Student Daily Attendance'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.summarize),
-            title: const Text('Day Attendance Summary'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Student Edge'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.leave_bags_at_home),
-            title: const Text('Apply Leave / OD'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.report),
-            title: const Text('Subject Attendance Report'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.request_page),
-            title: const Text('Alteration Requests'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.request_page),
-            title: const Text('Permission Request'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Staff Personal Attendance'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.request_page),
-            title: const Text('Student Leave Request'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.request_page),
-            title: const Text('Subject Reg Requests'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.report),
-            title: const Text('Syllabus Completion Report'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.grade),
-            title: const Text('Marks Entry'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.visibility),
-            title: const Text('View Marks'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.group),
-            title: const Text('Committee'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.feedback),
-            title: const Text('Feed Back'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.message),
-            title: const Text('Messages'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
+          //Student Leave Requests for Incharge
+          if (facultyType == 'Associate Professor')
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Student Leave Requests'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/student_leave_requests');
+              },
+            ),
+          if (facultyType == 'HoD')
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Student Leave Requests'),
+              onTap: () {
+                Navigator.pushReplacementNamed(
+                  context,
+                  '/student_leave_requests_hod',
+                );
+              },
+            ),
+          if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Add Faculty'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/add_faculty');
+              },
+            ),
+            if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Add Students'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/add_students');
+              },
+            ),
+          if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Staff Edge'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (['HoD', 'Admin'].contains(facultyType))
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Student Daily Attendance'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (['HoD', 'Admin'].contains(facultyType))
+            ListTile(
+              leading: const Icon(Icons.summarize),
+              title: const Text('Day Attendance Summary'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Student Edge'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.leave_bags_at_home),
+              title: const Text('Apply Leave / OD'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (['HoD', 'Admin'].contains(facultyType))
+            ListTile(
+              leading: const Icon(Icons.report),
+              title: const Text('Subject Attendance Report'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (['HoD', 'Admin'].contains(facultyType))
+            ListTile(
+              leading: const Icon(Icons.request_page),
+              title: const Text('Alteration Requests'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (['HoD', 'Admin'].contains(facultyType))
+            ListTile(
+              leading: const Icon(Icons.request_page),
+              title: const Text('Permission Request'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Staff Personal Attendance'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.request_page),
+              title: const Text('Student Leave Request'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.request_page),
+              title: const Text('Subject Reg Requests'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (['HoD', 'Admin'].contains(facultyType))
+            ListTile(
+              leading: const Icon(Icons.report),
+              title: const Text('Syllabus Completion Report'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (['HoD', 'Admin'].contains(facultyType))
+            ListTile(
+              leading: const Icon(Icons.grade),
+              title: const Text('Marks Entry'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (['HoD', 'Admin'].contains(facultyType))
+            ListTile(
+              leading: const Icon(Icons.visibility),
+              title: const Text('View Marks'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (['HoD', 'Admin'].contains(facultyType))
+            ListTile(
+              leading: const Icon(Icons.group),
+              title: const Text('Committee'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.feedback),
+              title: const Text('Feed Back'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
+          if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.message),
+              title: const Text('Messages'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/under_construction');
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.person),
             title: const Text('Profile'),
