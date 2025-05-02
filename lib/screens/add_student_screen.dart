@@ -19,12 +19,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
   String? _selectedClass;
   String? _selectedDepartment;
   String? _selectedYear;
-  final List<String> _classes = [
-    'AIDS E',
-    'CSE A',
-    'ECE B',
-    'MECH C',
-  ]; // Example classes
+  final List<String> _classes = ['AIDS E', 'CSE A', 'ECE B', 'MECH C'];
   final List<String> _departments = ['AIDS', 'CSE', 'ECE', 'MECH'];
   final List<String> _years = [
     'First Year',
@@ -67,14 +62,21 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
       final snapshot =
           await FirebaseFirestore.instance.collection('users').get();
       setState(() {
-        _studentList = snapshot.docs.map((doc) => doc.data()).toList();
+        _studentList =
+            snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['uid'] = doc.id;
+              return data;
+            }).toList();
         _filteredStudentList = _studentList;
       });
     } catch (e) {
       print('Error fetching student list: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load student list: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load student list: $e')),
+        );
+      }
     }
   }
 
@@ -106,16 +108,68 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
     });
   }
 
+  Future<String?> _promptAdminPassword(BuildContext context) async {
+    final TextEditingController passwordController = TextEditingController();
+    String? password;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Admin Password Required'),
+            content: TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Enter Admin Password',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  password = passwordController.text.trim();
+                  Navigator.pop(context);
+                },
+                child: const Text('Submit'),
+              ),
+            ],
+          ),
+    );
+
+    return password;
+  }
+
   Future<void> _addStudent() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    if (!mounted) return;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // Prompt admin to re-enter their password
+      final adminPassword = await _promptAdminPassword(context);
+      if (adminPassword == null) {
+        throw Exception('Admin password required to proceed.');
+      }
+
+      final adminUser = FirebaseAuth.instance.currentUser;
+      if (adminUser == null) {
+        throw Exception('Admin user not logged in.');
+      }
+      final adminEmail = adminUser.email;
+
       final String email = _emailController.text.trim();
       String? uid;
 
@@ -131,6 +185,16 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
           uid = userCredential.user!.uid;
           await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
           print('New user created: $uid with email: $email');
+
+          // Sign out the newly created user
+          await FirebaseAuth.instance.signOut();
+
+          // Sign the admin back in
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: adminEmail!,
+            password: adminPassword,
+          );
+          print('Admin signed back in: $adminEmail');
         } else {
           final querySnapshot =
               await FirebaseFirestore.instance
@@ -148,6 +212,16 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                 );
             uid = userCredential.user!.uid;
             print('Existing email in Auth but not in Firestore, new UID: $uid');
+
+            // Sign out the newly created user
+            await FirebaseAuth.instance.signOut();
+
+            // Sign the admin back in
+            await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: adminEmail!,
+              password: adminPassword,
+            );
+            print('Admin signed back in: $adminEmail');
           }
         }
       } on FirebaseAuthException catch (e) {
@@ -186,12 +260,14 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
 
       print('Student added: $uid, Data: $studentData');
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Student added successfully.')),
       );
 
       await _fetchStudentList();
 
+      if (!mounted) return;
       _nameController.clear();
       _emailController.clear();
       _regdNumberController.clear();
@@ -203,10 +279,12 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
       });
     } catch (e) {
       print('Error adding student: $e');
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to add student: $e')));
     } finally {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -339,7 +417,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
                 Card(
                   elevation: 8,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.0),
+                    borderRadius: BorderRadius.circular(12.0),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),

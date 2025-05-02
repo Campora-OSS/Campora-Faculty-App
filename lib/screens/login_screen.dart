@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key}); // Add const constructor
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -19,6 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    if (!mounted) return; // Check if widget is still mounted
 
     setState(() {
       _isLoading = true;
@@ -49,13 +53,16 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception('Not authorized. Only faculty members can log in.');
       }
 
+      if (!mounted) return; // Check before navigating
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
+      if (!mounted) return; // Check before setting state
       setState(() {
         _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
       print('Login error: $e');
     } finally {
+      if (!mounted) return; // Check before setting state
       setState(() {
         _isLoading = false;
       });
@@ -67,30 +74,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (email.isEmpty ||
         !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      if (!mounted) return; // Check before showing SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid email address.')),
       );
       return;
     }
 
+    if (!mounted) return; // Check before setting state
     setState(() {
       _isLoading = true;
     });
 
     try {
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return; // Check before popping dialog
       Navigator.of(context).pop(); // Close the dialog
+      if (!mounted) return; // Check before showing SnackBar
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Password reset email sent. Check your inbox.'),
         ),
       );
     } catch (e) {
+      if (!mounted) return; // Check before showing SnackBar
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to send reset email: $e')));
       print('Reset password error: $e');
     } finally {
+      if (!mounted) return; // Check before setting state
       setState(() {
         _isLoading = false;
       });
@@ -99,6 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _showResetPasswordDialog() {
     _resetEmailController.clear();
+    if (!mounted) return; // Check before showing dialog
     showDialog(
       context: context,
       builder:
@@ -123,7 +137,10 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () {
+                  if (!mounted) return; // Check before popping dialog
+                  Navigator.of(context).pop();
+                },
                 child: const Text('Cancel'),
               ),
               ElevatedButton(

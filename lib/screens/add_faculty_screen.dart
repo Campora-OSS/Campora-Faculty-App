@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ritian_faculty/screens/faculty_details_screen.dart';
 import 'package:ritian_faculty/widgets/custom_navigation_drawer.dart';
 
 class AddFacultyScreen extends StatefulWidget {
@@ -24,25 +25,21 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
   final _religionController = TextEditingController();
   final _staffCodeController = TextEditingController();
   final _totalExperienceController = TextEditingController();
-  final _searchController =
-      TextEditingController(); // Controller for search input
+  final _searchController = TextEditingController();
   String? _selectedFacultyType;
   final List<String> _facultyTypes = ['Associate Professor', 'HoD'];
   bool _isLoading = false;
   String? _facultyType;
   bool _showAddForm = false;
   List<Map<String, dynamic>> _facultyList = [];
-  List<Map<String, dynamic>> _filteredFacultyList =
-      []; // Filtered list for search
+  List<Map<String, dynamic>> _filteredFacultyList = [];
 
   @override
   void initState() {
     super.initState();
     _fetchUserFacultyType();
     _fetchFacultyList();
-    _searchController.addListener(
-      _filterFacultyList,
-    ); // Listen to search input changes
+    _searchController.addListener(_filterFacultyList);
   }
 
   Future<void> _fetchUserFacultyType() async {
@@ -66,9 +63,13 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
       final snapshot =
           await FirebaseFirestore.instance.collection('faculty_members').get();
       setState(() {
-        _facultyList = snapshot.docs.map((doc) => doc.data()).toList();
-        _filteredFacultyList =
-            _facultyList; // Initially, show all faculty members
+        _facultyList =
+            snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['uid'] = doc.id;
+              return data;
+            }).toList();
+        _filteredFacultyList = _facultyList;
       });
     } catch (e) {
       print('Error fetching faculty list: $e');
@@ -82,7 +83,7 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
     final query = _searchController.text.trim().toLowerCase();
     setState(() {
       if (query.isEmpty) {
-        _filteredFacultyList = _facultyList; // Show all if search is empty
+        _filteredFacultyList = _facultyList;
       } else {
         _filteredFacultyList =
             _facultyList.where((faculty) {
@@ -111,6 +112,18 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
     });
 
     try {
+      // Prompt admin to re-enter their password
+      final adminPassword = await _promptAdminPassword(context);
+      if (adminPassword == null) {
+        throw Exception('Admin password required to proceed.');
+      }
+
+      final adminUser = FirebaseAuth.instance.currentUser;
+      if (adminUser == null) {
+        throw Exception('Admin user not logged in.');
+      }
+      final adminEmail = adminUser.email;
+
       final String email = _emailController.text.trim();
       String? uid;
 
@@ -126,6 +139,16 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
           uid = userCredential.user!.uid;
           await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
           print('New user created: $uid with email: $email');
+
+          // Sign out the newly created user
+          await FirebaseAuth.instance.signOut();
+
+          // Sign the admin back in
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: adminEmail!,
+            password: adminPassword,
+          );
+          print('Admin signed back in: $adminEmail');
         } else {
           final querySnapshot =
               await FirebaseFirestore.instance
@@ -143,6 +166,16 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
                 );
             uid = userCredential.user!.uid;
             print('Existing email in Auth but not in Firestore, new UID: $uid');
+
+            // Sign out the newly created user
+            await FirebaseAuth.instance.signOut();
+
+            // Sign the admin back in
+            await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: adminEmail!,
+              password: adminPassword,
+            );
+            print('Admin signed back in: $adminEmail');
           }
         }
       } on FirebaseAuthException catch (e) {
@@ -192,7 +225,7 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
         const SnackBar(content: Text('Faculty added successfully.')),
       );
 
-      await _fetchFacultyList(); // Refresh the faculty list
+      await _fetchFacultyList();
 
       _nameController.clear();
       _emailController.clear();
@@ -220,6 +253,45 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // Add a method to prompt the admin for their password
+  Future<String?> _promptAdminPassword(BuildContext context) async {
+    final TextEditingController passwordController = TextEditingController();
+    String? password;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Admin Password Required'),
+            content: TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Enter Admin Password',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  password = passwordController.text.trim();
+                  Navigator.pop(context);
+                },
+                child: const Text('Submit'),
+              ),
+            ],
+          ),
+    );
+
+    return password;
   }
 
   @override
@@ -267,7 +339,6 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Search bar
               TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
@@ -281,7 +352,6 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Display filtered list of faculty members
               _filteredFacultyList.isEmpty
                   ? const Center(child: Text('No faculty members found.'))
                   : ListView.builder(
@@ -308,14 +378,31 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
                               Text(
                                 'Department: ${faculty['department'] ?? 'N/A'}',
                               ),
+                              Text(
+                                'In-Charge: ${faculty['incharge'] ?? 'Not assigned'}',
+                              ),
                             ],
                           ),
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => FacultyDetailsScreen(
+                                      faculty: faculty,
+                                      uid: faculty['uid'],
+                                    ),
+                              ),
+                            );
+                            if (result == true) {
+                              await _fetchFacultyList();
+                            }
+                          },
                         ),
                       );
                     },
                   ),
               const SizedBox(height: 16),
-              // Button to show the add faculty form
               Center(
                 child: ElevatedButton(
                   onPressed: () {
@@ -345,7 +432,6 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              // Form to add a new faculty (visible only when _showAddForm is true)
               if (_showAddForm)
                 Card(
                   elevation: 8,
