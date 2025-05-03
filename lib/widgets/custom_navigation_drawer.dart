@@ -171,6 +171,36 @@ class _AppDrawerState extends State<AppDrawer> {
                 Navigator.pushReplacementNamed(context, '/add_students');
               },
             ),
+            if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.book),
+              title: const Text('Add Subjects'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/add_subject');
+              },
+            ),
+            if (facultyType == 'Admin')
+            ListTile(
+              leading: const Icon(Icons.schedule),
+              title: const Text('Add Timetable'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/add_timetable');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.schedule),
+              title: const Text('My Time Table'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/faculty_timetable');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('Announcement'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/announcement');
+              },
+            ),
           if (facultyType == 'Admin')
             ListTile(
               leading: const Icon(Icons.person),

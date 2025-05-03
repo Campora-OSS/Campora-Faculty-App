@@ -3,6 +3,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ritian_faculty/screens/add_faculty_screen.dart';
 import 'package:ritian_faculty/screens/add_student_screen.dart';
+import 'package:ritian_faculty/screens/add_subject_screen.dart';
+import 'package:ritian_faculty/screens/add_timetable_screen.dart';
+import 'package:ritian_faculty/screens/announcement_screen.dart';
+import 'package:ritian_faculty/screens/faculty_timetable_screen.dart';
 import 'package:ritian_faculty/screens/student_leave_requests_hod.dart';
 import 'package:ritian_faculty/screens/student_leave_requests_screen.dart';
 import 'screens/login_screen.dart';
@@ -49,6 +53,10 @@ class MyApp extends StatelessWidget {
         '/student_leave_requests_hod': (context) => const StudentLeaveRequestsHodScreen(),
         '/add_students': (context) => AddStudentScreen(),
         '/add_faculty': (context) => AddFacultyScreen(),
+        '/announcement': (context) => AnnouncementScreen(),
+        '/add_subject': (context) => const AddSubjectScreen(),
+        '/add_timetable': (context) => const AddTimetableScreen(),
+        '/faculty_timetable': (context) => const FacultyTimetableScreen(),
         '/under_construction': (context) => const UnderConstructionScreen(),
       },
     );
