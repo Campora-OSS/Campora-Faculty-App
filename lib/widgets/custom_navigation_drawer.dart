@@ -1,6 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
@@ -10,7 +10,6 @@ class AppDrawer extends StatefulWidget {
 }
 
 class _AppDrawerState extends State<AppDrawer> {
-  bool _isSigningOut = false;
   Map<String, dynamic>? _userData;
 
   @override
@@ -36,40 +35,8 @@ class _AppDrawerState extends State<AppDrawer> {
   }
 
   Future<void> _signOut(BuildContext context) async {
-    bool? confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Confirm Sign Out'),
-            content: const Text('Are you sure you want to sign out?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Sign Out'),
-              ),
-            ],
-          ),
-    );
-
-    if (confirm == true) {
-      setState(() {
-        _isSigningOut = true;
-      });
-      try {
-        await FirebaseAuth.instance.signOut();
-        Navigator.pushReplacementNamed(context, '/');
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isSigningOut = false;
-          });
-        }
-      }
-    }
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushReplacementNamed(context, '/');
   }
 
   @override
@@ -78,286 +45,259 @@ class _AppDrawerState extends State<AppDrawer> {
     final facultyType = _userData?['faculty_type'] ?? '';
 
     return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
+      child: Column(
         children: [
-          DrawerHeader(
-            decoration: const BoxDecoration(color: Colors.blue),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/profile'),
+            child: UserAccountsDrawerHeader(
+              accountName: Text(_userData?['name'] ?? 'Guest'),
+              accountEmail: Text(user?.email ?? 'guest@example.com'),
+              currentAccountPicture: const CircleAvatar(
+                backgroundImage: NetworkImage(
+                  'https://via.placeholder.com/150',
+                ),
+              ),
+              decoration: const BoxDecoration(color: Colors.blue),
+            ),
+          ),
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
-                Text(
-                  _userData?['staff_code'] ?? 'Staff Code',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                ListTile(
+                  leading: const Icon(Icons.home),
+                  title: const Text('Home'),
+                  onTap: () => Navigator.pushNamed(context, '/home'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.schedule),
+                  title: const Text('My Time Table'),
+                  onTap:
+                      () => Navigator.pushNamed(context, '/faculty_timetable'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.book),
+                  title: const Text('My Subjects'),
+                  onTap:
+                      () => Navigator.pushNamed(context, '/under_construction'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.list),
+                  title: const Text('My Lesson Plans'),
+                  onTap:
+                      () => Navigator.pushNamed(context, '/under_construction'),
+                ),
+                if (facultyType == 'Associate Professor')
+                  ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text('Student Leave Requests'),
+                    onTap:
+                        () => Navigator.pushNamed(
+                          context,
+                          '/student_leave_requests',
+                        ),
                   ),
+                if (facultyType == 'HoD')
+                  ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text('Student Leave Requests'),
+                    onTap:
+                        () => Navigator.pushNamed(
+                          context,
+                          '/student_leave_requests_hod',
+                        ),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text('Add Faculty'),
+                    onTap: () => Navigator.pushNamed(context, '/add_faculty'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text('Add Students'),
+                    onTap: () => Navigator.pushNamed(context, '/add_students'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.book),
+                    title: const Text('Add Subjects'),
+                    onTap: () => Navigator.pushNamed(context, '/add_subject'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.schedule),
+                    title: const Text('Add Timetable'),
+                    onTap: () => Navigator.pushNamed(context, '/add_timetable'),
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.person),
+                  title: const Text('Announcement'),
+                  onTap: () => Navigator.pushNamed(context, '/announcement'),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  user?.email ?? 'Email',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text('Staff Edge'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (['HoD', 'Admin'].contains(facultyType))
+                  ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text('Student Daily Attendance'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (['HoD', 'Admin'].contains(facultyType))
+                  ListTile(
+                    leading: const Icon(Icons.summarize),
+                    title: const Text('Day Attendance Summary'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text('Student Edge'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.leave_bags_at_home),
+                    title: const Text('Apply Leave / OD'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (['HoD', 'Admin'].contains(facultyType))
+                  ListTile(
+                    leading: const Icon(Icons.report),
+                    title: const Text('Subject Attendance Report'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (['HoD', 'Admin'].contains(facultyType))
+                  ListTile(
+                    leading: const Icon(Icons.request_page),
+                    title: const Text('Alteration Requests'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (['HoD', 'Admin'].contains(facultyType))
+                  ListTile(
+                    leading: const Icon(Icons.request_page),
+                    title: const Text('Permission Request'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.person),
+                    title: const Text('Staff Personal Attendance'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.request_page),
+                    title: const Text('Student Leave Request'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.request_page),
+                    title: const Text('Subject Reg Requests'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (['HoD', 'Admin'].contains(facultyType))
+                  ListTile(
+                    leading: const Icon(Icons.report),
+                    title: const Text('Syllabus Completion Report'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (['HoD', 'Admin'].contains(facultyType))
+                  ListTile(
+                    leading: const Icon(Icons.grade),
+                    title: const Text('Marks Entry'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (['HoD', 'Admin'].contains(facultyType))
+                  ListTile(
+                    leading: const Icon(Icons.visibility),
+                    title: const Text('View Marks'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (['HoD', 'Admin'].contains(facultyType))
+                  ListTile(
+                    leading: const Icon(Icons.group),
+                    title: const Text('Committee'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.feedback),
+                    title: const Text('Feed Back'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                if (facultyType == 'Admin')
+                  ListTile(
+                    leading: const Icon(Icons.message),
+                    title: const Text('Messages'),
+                    onTap:
+                        () =>
+                            Navigator.pushNamed(context, '/under_construction'),
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.person),
+                  title: const Text('Profile'),
+                  onTap: () => Navigator.pushNamed(context, '/profile'),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Biometric ID: ${_userData?['biometric_id'] ?? 'N/A'}',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ListTile(
+                  leading: const Icon(Icons.settings),
+                  title: const Text('Settings'),
+                  onTap: () => Navigator.pushNamed(context, '/settings'),
                 ),
+                const Divider(),
               ],
             ),
           ),
           ListTile(
-            leading: const Icon(Icons.dashboard),
-            title: const Text('Dashboard'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/home');
-            },
+            leading: const Icon(Icons.logout),
+            title: const Text('Logout'),
+            onTap: () => _signOut(context),
           ),
-          ListTile(
-            leading: const Icon(Icons.schedule),
-            title: const Text('My Time Table'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.book),
-            title: const Text('My Subjects'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.list),
-            title: const Text('My Lesson Plans'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/under_construction');
-            },
-          ),
-          //Student Leave Requests for Incharge
-          if (facultyType == 'Associate Professor')
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Student Leave Requests'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/student_leave_requests');
-              },
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'Developed by: Null Pointers',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center,
             ),
-          if (facultyType == 'HoD')
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Student Leave Requests'),
-              onTap: () {
-                Navigator.pushReplacementNamed(
-                  context,
-                  '/student_leave_requests_hod',
-                );
-              },
-            ),
-          if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Add Faculty'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/add_faculty');
-              },
-            ),
-            if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Add Students'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/add_students');
-              },
-            ),
-            if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.book),
-              title: const Text('Add Subjects'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/add_subject');
-              },
-            ),
-            if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.schedule),
-              title: const Text('Add Timetable'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/add_timetable');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.schedule),
-              title: const Text('My Time Table'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/faculty_timetable');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Announcement'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/announcement');
-              },
-            ),
-          if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Staff Edge'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (['HoD', 'Admin'].contains(facultyType))
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Student Daily Attendance'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (['HoD', 'Admin'].contains(facultyType))
-            ListTile(
-              leading: const Icon(Icons.summarize),
-              title: const Text('Day Attendance Summary'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Student Edge'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.leave_bags_at_home),
-              title: const Text('Apply Leave / OD'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (['HoD', 'Admin'].contains(facultyType))
-            ListTile(
-              leading: const Icon(Icons.report),
-              title: const Text('Subject Attendance Report'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (['HoD', 'Admin'].contains(facultyType))
-            ListTile(
-              leading: const Icon(Icons.request_page),
-              title: const Text('Alteration Requests'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (['HoD', 'Admin'].contains(facultyType))
-            ListTile(
-              leading: const Icon(Icons.request_page),
-              title: const Text('Permission Request'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Staff Personal Attendance'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.request_page),
-              title: const Text('Student Leave Request'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.request_page),
-              title: const Text('Subject Reg Requests'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (['HoD', 'Admin'].contains(facultyType))
-            ListTile(
-              leading: const Icon(Icons.report),
-              title: const Text('Syllabus Completion Report'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (['HoD', 'Admin'].contains(facultyType))
-            ListTile(
-              leading: const Icon(Icons.grade),
-              title: const Text('Marks Entry'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (['HoD', 'Admin'].contains(facultyType))
-            ListTile(
-              leading: const Icon(Icons.visibility),
-              title: const Text('View Marks'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (['HoD', 'Admin'].contains(facultyType))
-            ListTile(
-              leading: const Icon(Icons.group),
-              title: const Text('Committee'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.feedback),
-              title: const Text('Feed Back'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          if (facultyType == 'Admin')
-            ListTile(
-              leading: const Icon(Icons.message),
-              title: const Text('Messages'),
-              onTap: () {
-                Navigator.pushReplacementNamed(context, '/under_construction');
-              },
-            ),
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text('Profile'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/profile');
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Settings'),
-            onTap: () {
-              Navigator.pushReplacementNamed(context, '/settings');
-            },
-          ),
-          ListTile(
-            leading:
-                _isSigningOut
-                    ? const CircularProgressIndicator()
-                    : const Icon(Icons.logout),
-            title: const Text('Sign Out'),
-            onTap: _isSigningOut ? null : () => _signOut(context),
           ),
         ],
       ),
