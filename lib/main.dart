@@ -15,10 +15,13 @@ import 'screens/profile_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/first_time_sign_in_screen.dart';
 import 'screens/under_construction_screen.dart';
+import 'firebase_options.dart'; // Add this import
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform, // Use generated options
+  );
   runApp(const MyApp());
 }
 
@@ -39,18 +42,23 @@ class MyApp extends StatelessWidget {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (snapshot.hasError) {
+                  return const Center(child: Text('Error occurred'));
+                }
                 if (snapshot.hasData) {
                   return const HomeScreen();
                 }
-                return LoginScreen();
+                return const LoginScreen();
               },
             ),
         '/home': (context) => const HomeScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/settings': (context) => const SettingsScreen(),
         '/first_time_sign_in': (context) => const FirstTimeSignInScreen(),
-        '/student_leave_requests': (context) => const StudentLeaveRequestsScreen(),
-        '/student_leave_requests_hod': (context) => const StudentLeaveRequestsHodScreen(),
+        '/student_leave_requests':
+            (context) => const StudentLeaveRequestsScreen(),
+        '/student_leave_requests_hod':
+            (context) => const StudentLeaveRequestsHodScreen(),
         '/add_students': (context) => AddStudentScreen(),
         '/add_faculty': (context) => AddFacultyScreen(),
         '/announcement': (context) => AnnouncementScreen(),

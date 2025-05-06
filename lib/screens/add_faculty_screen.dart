@@ -255,7 +255,7 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
     }
   }
 
-  // Add a method to prompt the admin for their password
+  // Prompt admin for password
   Future<String?> _promptAdminPassword(BuildContext context) async {
     final TextEditingController passwordController = TextEditingController();
     String? password;
@@ -296,6 +296,8 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isWeb = MediaQuery.of(context).size.width > 800;
+
     if (_facultyType == null) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -303,451 +305,550 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
     if (_facultyType != 'Admin') {
       print('Unauthorized access attempt: $_facultyType');
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Faculty List'),
-          backgroundColor: Colors.blue,
-        ),
-        drawer: const AppDrawer(),
-        body: const Center(
+        drawer: isWeb ? null : const AppDrawer(),
+        body: Center(
           child: Text(
             'You are not authorized to access this page.',
-            style: TextStyle(fontSize: 16, color: Colors.black54),
+            style: TextStyle(fontSize: isWeb ? 18 : 16, color: Colors.black54),
           ),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Faculty List'),
-        backgroundColor: Colors.blue,
-      ),
-      drawer: const AppDrawer(),
-      body: Container(
-        color: Colors.white,
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Faculty Members',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF0C4D83),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  labelText: 'Search Faculty',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
+      drawer: isWeb ? null : const AppDrawer(), // Drawer only for mobile
+      body:
+          isWeb
+              ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AppDrawer(), // Persistent sidebar for web
+                  Expanded(child: _buildContent(context, isWeb)),
+                ],
+              )
+              : _buildContent(context, isWeb),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, bool isWeb) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight =
+            constraints.maxHeight - (isWeb ? 48 : 32); // Subtract padding
+        return SingleChildScrollView(
+          child: Padding(
+            padding:
+                isWeb
+                    ? const EdgeInsets.fromLTRB(24, 24, 24, 16)
+                    : const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Faculty Members',
+                  style: TextStyle(
+                    fontSize: isWeb ? 28 : 24,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0C4D83),
                   ),
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  prefixIcon: const Icon(Icons.search),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _filteredFacultyList.isEmpty
-                  ? const Center(child: Text('No faculty members found.'))
-                  : ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _filteredFacultyList.length,
-                    itemBuilder: (context, index) {
-                      final faculty = _filteredFacultyList[index];
-                      return Card(
-                        elevation: 4,
-                        margin: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: ListTile(
-                          title: Text(
-                            faculty['name'] ?? 'Unknown',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Email: ${faculty['email'] ?? 'N/A'}'),
-                              Text(
-                                'Faculty Type: ${faculty['faculty_type'] ?? 'N/A'}',
-                              ),
-                              Text(
-                                'Department: ${faculty['department'] ?? 'N/A'}',
-                              ),
-                              Text(
-                                'In-Charge: ${faculty['incharge'] ?? 'Not assigned'}',
-                              ),
-                            ],
-                          ),
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder:
-                                    (context) => FacultyDetailsScreen(
-                                      faculty: faculty,
-                                      uid: faculty['uid'],
-                                    ),
-                              ),
-                            );
-                            if (result == true) {
-                              await _fetchFacultyList();
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  ),
-              const SizedBox(height: 16),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _showAddForm = !_showAddForm;
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    shape: RoundedRectangleBorder(
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: 'Search Faculty',
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
                     ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14.0,
-                      horizontal: 30.0,
-                    ),
-                    elevation: 6,
-                  ),
-                  child: Text(
-                    _showAddForm ? 'Hide Form' : 'Add New Faculty',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    prefixIcon: const Icon(Icons.search),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              if (_showAddForm)
-                Card(
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.0),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Faculty Details',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF0C4D83),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _nameController,
-                            decoration: InputDecoration(
-                              labelText: 'Name',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter a name';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _emailController,
-                            decoration: InputDecoration(
-                              labelText: 'Email',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            keyboardType: TextInputType.emailAddress,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter an email';
-                              }
-                              if (!RegExp(
-                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                              ).hasMatch(value)) {
-                                return 'Please enter a valid email';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _biometricIdController,
-                            decoration: InputDecoration(
-                              labelText: 'Biometric ID',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter a biometric ID';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          DropdownButtonFormField<String>(
-                            value: _selectedFacultyType,
-                            decoration: InputDecoration(
-                              labelText: 'Faculty Type',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            items:
-                                _facultyTypes.map((type) {
-                                  return DropdownMenuItem(
-                                    value: type,
-                                    child: Text(type),
-                                  );
-                                }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedFacultyType = value;
-                              });
-                            },
-                            validator: (value) {
-                              if (value == null) {
-                                return 'Please select a faculty type';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _ageController,
-                            decoration: InputDecoration(
-                              labelText: 'Age',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            keyboardType: TextInputType.number,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter age';
-                              }
-                              if (int.tryParse(value) == null ||
-                                  int.parse(value) <= 0) {
-                                return 'Please enter a valid age';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _birthdayController,
-                            decoration: InputDecoration(
-                              labelText: 'Birthday (e.g., 14 May 2004)',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter birthday';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _dateOfJoiningController,
-                            decoration: InputDecoration(
-                              labelText: 'Date of Joining',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter date of joining';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _departmentController,
-                            decoration: InputDecoration(
-                              labelText: 'Department',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter department';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _highestDegreeController,
-                            decoration: InputDecoration(
-                              labelText: 'Highest Degree',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter highest degree';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _phoneController,
-                            decoration: InputDecoration(
-                              labelText: 'Phone',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            keyboardType: TextInputType.phone,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter phone number';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _religionController,
-                            decoration: InputDecoration(
-                              labelText: 'Religion',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter religion';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _staffCodeController,
-                            decoration: InputDecoration(
-                              labelText: 'Staff Code',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter staff code';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
-                          TextFormField(
-                            controller: _totalExperienceController,
-                            decoration: InputDecoration(
-                              labelText: 'Total Experience (years)',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[100],
-                            ),
-                            keyboardType: TextInputType.number,
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter total experience';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                          Center(
-                            child: ElevatedButton(
-                              onPressed: _isLoading ? null : _addFaculty,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12.0),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height:
+                      isWeb
+                          ? null
+                          : availableHeight -
+                              84, // Adjust for title, search, button
+                  child:
+                      _filteredFacultyList.isEmpty
+                          ? const Center(
+                            child: Text('No faculty members found.'),
+                          )
+                          : isWeb
+                          ? GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate:
+                                const SliverGridDelegateWithMaxCrossAxisExtent(
+                                  maxCrossAxisExtent: 400,
+                                  childAspectRatio: 1.8,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
                                 ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14.0,
-                                  horizontal: 30.0,
-                                ),
-                                elevation: 6,
-                              ),
-                              child:
-                                  _isLoading
-                                      ? const CircularProgressIndicator(
-                                        color: Colors.white,
-                                      )
-                                      : const Text(
-                                        'Add Faculty',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                            ),
+                            itemCount: _filteredFacultyList.length,
+                            itemBuilder: (context, index) {
+                              return _buildFacultyCard(
+                                context,
+                                _filteredFacultyList[index],
+                                isWeb,
+                              );
+                            },
+                          )
+                          : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _filteredFacultyList.length,
+                            itemBuilder: (context, index) {
+                              return _buildFacultyCard(
+                                context,
+                                _filteredFacultyList[index],
+                                isWeb,
+                              );
+                            },
                           ),
-                        ],
+                ),
+                const SizedBox(height: 12),
+                Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _showAddForm = !_showAddForm;
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      padding:
+                          isWeb
+                              ? const EdgeInsets.symmetric(
+                                vertical: 14.0,
+                                horizontal: 30.0,
+                              )
+                              : const EdgeInsets.symmetric(
+                                vertical: 12.0,
+                                horizontal: 24.0,
+                              ),
+                      elevation: 6,
+                    ),
+                    child: Text(
+                      _showAddForm ? 'Hide Form' : 'Add New Faculty',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isWeb ? 16 : 14,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                 ),
-            ],
+                const SizedBox(height: 12),
+                if (_showAddForm)
+                  Card(
+                    elevation: isWeb ? 8 : 6,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Padding(
+                      padding:
+                          isWeb
+                              ? const EdgeInsets.all(20.0)
+                              : const EdgeInsets.all(16.0),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Faculty Details',
+                              style: TextStyle(
+                                fontSize: isWeb ? 20 : 18,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF0C4D83),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: InputDecoration(
+                                labelText: 'Name',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter a name'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _emailController,
+                              decoration: InputDecoration(
+                                labelText: 'Email',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) {
+                                if (value?.trim().isEmpty ?? true) {
+                                  return 'Please enter an email';
+                                }
+                                if (!RegExp(
+                                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                ).hasMatch(value!)) {
+                                  return 'Please enter a valid email';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _biometricIdController,
+                              decoration: InputDecoration(
+                                labelText: 'Biometric ID',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter a biometric ID'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              value: _selectedFacultyType,
+                              decoration: InputDecoration(
+                                labelText: 'Faculty Type',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              items:
+                                  _facultyTypes
+                                      .map(
+                                        (type) => DropdownMenuItem(
+                                          value: type,
+                                          child: Text(type),
+                                        ),
+                                      )
+                                      .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedFacultyType = value;
+                                });
+                              },
+                              validator:
+                                  (value) =>
+                                      value == null
+                                          ? 'Please select a faculty type'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _ageController,
+                              decoration: InputDecoration(
+                                labelText: 'Age',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (value) {
+                                if (value?.trim().isEmpty ?? true) {
+                                  return 'Please enter age';
+                                }
+                                if (int.tryParse(value!) == null ||
+                                    int.parse(value) <= 0) {
+                                  return 'Please enter a valid age';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _birthdayController,
+                              decoration: InputDecoration(
+                                labelText: 'Birthday (e.g., 14 May 2004)',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter birthday'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _dateOfJoiningController,
+                              decoration: InputDecoration(
+                                labelText: 'Date of Joining',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter date of joining'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _departmentController,
+                              decoration: InputDecoration(
+                                labelText: 'Department',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter department'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _highestDegreeController,
+                              decoration: InputDecoration(
+                                labelText: 'Highest Degree',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter highest degree'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _phoneController,
+                              decoration: InputDecoration(
+                                labelText: 'Phone',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              keyboardType: TextInputType.phone,
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter phone number'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _religionController,
+                              decoration: InputDecoration(
+                                labelText: 'Religion',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter religion'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _staffCodeController,
+                              decoration: InputDecoration(
+                                labelText: 'Staff Code',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter staff code'
+                                          : null,
+                            ),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _totalExperienceController,
+                              decoration: InputDecoration(
+                                labelText: 'Total Experience (years)',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator:
+                                  (value) =>
+                                      value?.trim().isEmpty ?? true
+                                          ? 'Please enter total experience'
+                                          : null,
+                            ),
+                            const SizedBox(height: 16),
+                            Center(
+                              child: ElevatedButton(
+                                onPressed: _isLoading ? null : _addFaculty,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  padding:
+                                      isWeb
+                                          ? const EdgeInsets.symmetric(
+                                            vertical: 14.0,
+                                            horizontal: 30.0,
+                                          )
+                                          : const EdgeInsets.symmetric(
+                                            vertical: 12.0,
+                                            horizontal: 24.0,
+                                          ),
+                                  elevation: 6,
+                                ),
+                                child:
+                                    _isLoading
+                                        ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                        : Text(
+                                          'Add Faculty',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: isWeb ? 16 : 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFacultyCard(
+    BuildContext context,
+    Map<String, dynamic> faculty,
+    bool isWeb,
+  ) {
+    return MouseRegion(
+      cursor: isWeb ? SystemMouseCursors.click : MouseCursor.defer,
+      child: Card(
+        elevation: isWeb ? 6 : 4,
+        margin:
+            isWeb
+                ? const EdgeInsets.symmetric(vertical: 6)
+                : const EdgeInsets.symmetric(vertical: 4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+        child: Container(
+          decoration:
+              isWeb
+                  ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(12.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  )
+                  : null,
+          child: ListTile(
+            contentPadding:
+                isWeb
+                    ? const EdgeInsets.symmetric(horizontal: 16, vertical: 8)
+                    : const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            title: Text(
+              faculty['name'] ?? 'Unknown',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: isWeb ? 18 : 16,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Email: ${faculty['email'] ?? 'N/A'}',
+                  style: TextStyle(fontSize: isWeb ? 14 : 13),
+                ),
+                Text(
+                  'Type: ${faculty['faculty_type'] ?? 'N/A'}',
+                  style: TextStyle(fontSize: isWeb ? 14 : 13),
+                ),
+                Text(
+                  'Dept: ${faculty['department'] ?? 'N/A'}',
+                  style: TextStyle(fontSize: isWeb ? 14 : 13),
+                ),
+                Text(
+                  'In-Charge: ${faculty['incharge'] ?? 'Not assigned'}',
+                  style: TextStyle(fontSize: isWeb ? 14 : 13),
+                ),
+              ],
+            ),
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (context) => FacultyDetailsScreen(
+                        faculty: faculty,
+                        uid: faculty['uid'],
+                      ),
+                ),
+              );
+              if (result == true) {
+                await _fetchFacultyList();
+              }
+            },
           ),
         ),
       ),

@@ -22,6 +22,7 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   List<String> _departments = [];
   List<String> _viewerOptions = [];
   bool _isDataLoaded = false;
+  bool _isPosting = false;
 
   @override
   void initState() {
@@ -52,7 +53,6 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
             .get();
     if (doc.exists) {
       _facultyType = doc.data()!['faculty_type'] as String?;
-      print('Fetched faculty_type: $_facultyType');
       if (_facultyType != null) {
         final facultyTypeLower = _facultyType!.toLowerCase();
         if (facultyTypeLower == 'associate professor') {
@@ -62,20 +62,15 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
             'Students',
             'All Faculties',
             'Individual Faculties',
-            'Department Faculties', // New option for HoD and Admin
+            'Department Faculties',
             if (facultyTypeLower == 'admin') 'Everyone',
           ];
         } else {
           _viewerOptions = ['Students'];
-          print(
-            'Unexpected faculty_type: $_facultyType, defaulting to Students',
-          );
         }
       } else {
         _viewerOptions = ['Students'];
-        print('faculty_type is null, defaulting to Students');
       }
-      print('Viewer options set to: $_viewerOptions');
     }
   }
 
@@ -138,174 +133,308 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
       return;
     }
 
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('faculty_members')
-            .doc(user.uid)
-            .get();
-    final announcerName = doc.data()!['name'] as String? ?? 'Unknown';
-
-    final announcementData = {
-      'announcement': _announcementController.text.trim(),
-      'announcer': announcerName,
-      'timestamp': Timestamp.now(),
-      'viewers': _selectedViewer,
-      'facultyType': _facultyType,
-    };
-
-    if (_selectedViewer == 'Students') {
-      announcementData['class'] = _selectedClass;
-    } else if (_selectedViewer == 'Individual Faculties') {
-      announcementData['facultyId'] = _selectedFaculty;
-    } else if (_selectedViewer == 'Department Faculties') {
-      announcementData['department'] = _selectedDepartment;
-    }
-
-    await FirebaseFirestore.instance
-        .collection('announcements')
-        .add(announcementData);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Announcement posted successfully')),
-    );
-
     setState(() {
-      _announcementController.clear();
-      _selectedViewer = null;
-      _selectedClass = null;
-      _selectedFaculty = null;
-      _selectedDepartment = null;
+      _isPosting = true;
     });
+
+    try {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('faculty_members')
+              .doc(user.uid)
+              .get();
+      final announcerName = doc.data()!['name'] as String? ?? 'Unknown';
+
+      final announcementData = {
+        'announcement': _announcementController.text.trim(),
+        'announcer': announcerName,
+        'timestamp': Timestamp.now(),
+        'viewers': _selectedViewer,
+        'facultyType': _facultyType,
+      };
+
+      if (_selectedViewer == 'Students') {
+        announcementData['class'] = _selectedClass;
+      } else if (_selectedViewer == 'Individual Faculties') {
+        announcementData['facultyId'] = _selectedFaculty;
+      } else if (_selectedViewer == 'Department Faculties') {
+        announcementData['department'] = _selectedDepartment;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('announcements')
+          .add(announcementData);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Announcement posted successfully')),
+      );
+
+      setState(() {
+        _announcementController.clear();
+        _selectedViewer = null;
+        _selectedClass = null;
+        _selectedFaculty = null;
+        _selectedDepartment = null;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to post announcement: $e')),
+      );
+    } finally {
+      setState(() {
+        _isPosting = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final bool isWeb = MediaQuery.of(context).size.width > 800;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Post Announcement')),
-      drawer: const AppDrawer(),
+      drawer: isWeb ? null : const AppDrawer(),
       body:
-          !_isDataLoaded
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: _announcementController,
-                        decoration: const InputDecoration(
-                          labelText: 'Announcement',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        value: _selectedViewer,
-                        items:
-                            _viewerOptions.map((option) {
-                              return DropdownMenuItem(
-                                value: option,
-                                child: Text(option),
-                              );
-                            }).toList(),
-                        onChanged:
-                            _viewerOptions.isEmpty
-                                ? null
-                                : (value) {
-                                  setState(() {
-                                    _selectedViewer = value;
-                                    _selectedClass = null;
-                                    _selectedFaculty = null;
-                                    _selectedDepartment = null;
-                                  });
-                                },
-                        decoration: const InputDecoration(
-                          labelText: 'Target Audience',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (_selectedViewer == 'Students') ...[
-                        DropdownButtonFormField<String>(
-                          value: _selectedClass,
-                          items: [
-                            ..._classes.map((className) {
-                              return DropdownMenuItem(
-                                value: className,
-                                child: Text(className),
-                              );
-                            }),
-                            const DropdownMenuItem(
-                              value: 'All Classes',
-                              child: Text('All Classes'),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedClass = value;
-                            });
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Select Class',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      if (_selectedViewer == 'Individual Faculties') ...[
-                        DropdownButtonFormField<String>(
-                          value: _selectedFaculty,
-                          items:
-                              _faculties.map((faculty) {
-                                return DropdownMenuItem(
-                                  value: faculty['id'] as String,
-                                  child: Text(faculty['name'] as String),
-                                );
-                              }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedFaculty = value;
-                            });
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Select Faculty',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      if (_selectedViewer == 'Department Faculties') ...[
-                        DropdownButtonFormField<String>(
-                          value: _selectedDepartment,
-                          items:
-                              _departments.map((dept) {
-                                return DropdownMenuItem(
-                                  value: dept,
-                                  child: Text(dept),
-                                );
-                              }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedDepartment = value;
-                            });
-                          },
-                          decoration: const InputDecoration(
-                            labelText: 'Select Department',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-                      ElevatedButton(
-                        onPressed: _postAnnouncement,
-                        child: const Text('Post Announcement'),
-                      ),
-                    ],
+          isWeb
+              ? Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AppDrawer(),
+                  Expanded(child: _buildContent(context, isWeb)),
+                ],
+              )
+              : _buildContent(context, isWeb),
+    );
+  }
+
+  Widget _buildContent(BuildContext context, bool isWeb) {
+    return !_isDataLoaded
+        ? const Center(child: CircularProgressIndicator())
+        : SingleChildScrollView(
+          child: Padding(
+            padding:
+                isWeb
+                    ? const EdgeInsets.fromLTRB(24, 24, 24, 16)
+                    : const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Post Announcement',
+                  style: TextStyle(
+                    fontSize: isWeb ? 28 : 24,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF0C4D83),
                   ),
                 ),
-              ),
-    );
+                const SizedBox(height: 16),
+                Card(
+                  elevation: isWeb ? 6 : 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Padding(
+                    padding:
+                        isWeb
+                            ? const EdgeInsets.all(16.0)
+                            : const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: _announcementController,
+                          decoration: InputDecoration(
+                            labelText: 'Announcement',
+                            border: const OutlineInputBorder(),
+                            contentPadding:
+                                isWeb
+                                    ? const EdgeInsets.all(16)
+                                    : const EdgeInsets.all(12),
+                          ),
+                          maxLines: 3,
+                          style: TextStyle(fontSize: isWeb ? 16 : 14),
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          value: _selectedViewer,
+                          items:
+                              _viewerOptions.map((option) {
+                                return DropdownMenuItem(
+                                  value: option,
+                                  child: Text(
+                                    option,
+                                    style: TextStyle(fontSize: isWeb ? 16 : 14),
+                                  ),
+                                );
+                              }).toList(),
+                          onChanged:
+                              _viewerOptions.isEmpty
+                                  ? null
+                                  : (value) {
+                                    setState(() {
+                                      _selectedViewer = value;
+                                      _selectedClass = null;
+                                      _selectedFaculty = null;
+                                      _selectedDepartment = null;
+                                    });
+                                  },
+                          decoration: InputDecoration(
+                            labelText: 'Target Audience',
+                            border: const OutlineInputBorder(),
+                            contentPadding:
+                                isWeb
+                                    ? const EdgeInsets.all(16)
+                                    : const EdgeInsets.all(12),
+                          ),
+                          style: TextStyle(fontSize: isWeb ? 16 : 14),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_selectedViewer == 'Students') ...[
+                          DropdownButtonFormField<String>(
+                            value: _selectedClass,
+                            items: [
+                              ..._classes.map((className) {
+                                return DropdownMenuItem(
+                                  value: className,
+                                  child: Text(
+                                    className,
+                                    style: TextStyle(fontSize: isWeb ? 16 : 14),
+                                  ),
+                                );
+                              }),
+                              const DropdownMenuItem(
+                                value: 'All Classes',
+                                child: Text('All Classes'),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedClass = value;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Select Class',
+                              border: const OutlineInputBorder(),
+                              contentPadding:
+                                  isWeb
+                                      ? const EdgeInsets.all(16)
+                                      : const EdgeInsets.all(12),
+                            ),
+                            style: TextStyle(fontSize: isWeb ? 16 : 14),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        if (_selectedViewer == 'Individual Faculties') ...[
+                          DropdownButtonFormField<String>(
+                            value: _selectedFaculty,
+                            items:
+                                _faculties.map((faculty) {
+                                  return DropdownMenuItem(
+                                    value: faculty['id'] as String,
+                                    child: Text(
+                                      faculty['name'] as String,
+                                      style: TextStyle(
+                                        fontSize: isWeb ? 16 : 14,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedFaculty = value;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Select Faculty',
+                              border: const OutlineInputBorder(),
+                              contentPadding:
+                                  isWeb
+                                      ? const EdgeInsets.all(16)
+                                      : const EdgeInsets.all(12),
+                            ),
+                            style: TextStyle(fontSize: isWeb ? 16 : 14),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        if (_selectedViewer == 'Department Faculties') ...[
+                          DropdownButtonFormField<String>(
+                            value: _selectedDepartment,
+                            items:
+                                _departments.map((dept) {
+                                  return DropdownMenuItem(
+                                    value: dept,
+                                    child: Text(
+                                      dept,
+                                      style: TextStyle(
+                                        fontSize: isWeb ? 16 : 14,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedDepartment = value;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'Select Department',
+                              border: const OutlineInputBorder(),
+                              contentPadding:
+                                  isWeb
+                                      ? const EdgeInsets.all(16)
+                                      : const EdgeInsets.all(12),
+                            ),
+                            style: TextStyle(fontSize: isWeb ? 16 : 14),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        Center(
+                          child: ElevatedButton(
+                            onPressed: _isPosting ? null : _postAnnouncement,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.0),
+                              ),
+                              padding:
+                                  isWeb
+                                      ? const EdgeInsets.symmetric(
+                                        vertical: 14.0,
+                                        horizontal: 30.0,
+                                      )
+                                      : const EdgeInsets.symmetric(
+                                        vertical: 12.0,
+                                        horizontal: 24.0,
+                                      ),
+                              elevation: 6,
+                            ),
+                            child:
+                                _isPosting
+                                    ? const CircularProgressIndicator(
+                                      color: Colors.white,
+                                    )
+                                    : Text(
+                                      'Post Announcement',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: isWeb ? 16 : 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+  }
+
+  @override
+  void dispose() {
+    _announcementController.dispose();
+    super.dispose();
   }
 }

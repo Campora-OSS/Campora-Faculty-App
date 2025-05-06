@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:ritian_faculty/widgets/custom_navigation_drawer.dart';
+import '../widgets/custom_navigation_drawer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StudentLeaveRequestsHodScreen extends StatelessWidget {
@@ -107,18 +107,16 @@ class StudentLeaveRequestsHodScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final bool isWeb = MediaQuery.of(context).size.width > 800;
+
     if (user == null) {
       print('No authenticated user found');
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Student Leave Requests'),
-          backgroundColor: const Color(0xFF0C4D83),
-        ),
-        drawer: const AppDrawer(),
-        body: const Center(
+        drawer: isWeb ? null : const AppDrawer(),
+        body: Center(
           child: Text(
             'Please log in to view requests',
-            style: TextStyle(fontSize: 16, color: Colors.black54),
+            style: TextStyle(fontSize: isWeb ? 18 : 16, color: Colors.black54),
           ),
         ),
       );
@@ -135,30 +133,28 @@ class StudentLeaveRequestsHodScreen extends StatelessWidget {
         if (hodSnapshot.hasError) {
           print('Error in FutureBuilder: ${hodSnapshot.error}');
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Student Leave Requests'),
-              backgroundColor: const Color(0xFF0C4D83),
-            ),
-            drawer: const AppDrawer(),
+            drawer: isWeb ? null : const AppDrawer(),
             body: Center(
               child: Text(
                 'Error: ${hodSnapshot.error}',
-                style: const TextStyle(fontSize: 16, color: Colors.black54),
+                style: TextStyle(
+                  fontSize: isWeb ? 18 : 16,
+                  color: Colors.black54,
+                ),
               ),
             ),
           );
         }
         if (!hodSnapshot.hasData || hodSnapshot.data!.isEmpty) {
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Student Leave Requests'),
-              backgroundColor: const Color(0xFF0C4D83),
-            ),
-            drawer: const AppDrawer(),
-            body: const Center(
+            drawer: isWeb ? null : const AppDrawer(),
+            body: Center(
               child: Text(
                 'Department not assigned to HoD',
-                style: TextStyle(fontSize: 16, color: Colors.black54),
+                style: TextStyle(
+                  fontSize: isWeb ? 18 : 16,
+                  color: Colors.black54,
+                ),
               ),
             ),
           );
@@ -167,262 +163,394 @@ class StudentLeaveRequestsHodScreen extends StatelessWidget {
         final hoddepartment = hodSnapshot.data!;
 
         return Scaffold(
-          appBar: AppBar(
-            title: const Text('Student Leave Requests'),
-            backgroundColor: const Color(0xFF0C4D83),
-          ),
-          drawer: const AppDrawer(),
-          body: Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16.0),
-            child: StreamBuilder<QuerySnapshot>(
-              stream:
-                  FirebaseFirestore.instance
-                      .collectionGroup('requests')
-                      .where('status', isEqualTo: 'hod')
-                      .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  print('Firestore query error: ${snapshot.error}');
-                  return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: const TextStyle(fontSize: 16, color: Colors.red),
-                    ),
-                  );
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  print('No data found or empty snapshot');
-                  return const Center(
-                    child: Text(
-                      'No pending leave requests',
-                      style: TextStyle(fontSize: 16, color: Colors.black54),
-                    ),
-                  );
-                }
+          drawer: isWeb ? null : const AppDrawer(), // Drawer only for mobile
+          body:
+              isWeb
+                  ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const AppDrawer(), // Persistent sidebar for web
+                      Expanded(
+                        child: _buildContent(context, hoddepartment, isWeb),
+                      ),
+                    ],
+                  )
+                  : _buildContent(context, hoddepartment, isWeb),
+        );
+      },
+    );
+  }
 
-                return FutureBuilder<List<QueryDocumentSnapshot>>(
-                  future: _filterRequestsByDepartment(
-                    snapshot.data!.docs,
-                    hoddepartment,
+  Widget _buildContent(BuildContext context, String hoddepartment, bool isWeb) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Padding(
+              padding:
+                  isWeb
+                      ? const EdgeInsets.fromLTRB(24, 24, 24, 16)
+                      : const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Student Leave Requests',
+                    style: TextStyle(
+                      fontSize: isWeb ? 28 : 24,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF0C4D83),
+                    ),
                   ),
-                  builder: (context, filteredSnapshot) {
-                    if (filteredSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (filteredSnapshot.hasError) {
-                      print(
-                        'Error filtering requests: ${filteredSnapshot.error}',
-                      );
-                      return const Center(
-                        child: Text(
-                          'Error filtering requests',
-                          style: TextStyle(fontSize: 16, color: Colors.red),
+                  const SizedBox(height: 16),
+                  StreamBuilder<QuerySnapshot>(
+                    stream:
+                        FirebaseFirestore.instance
+                            .collectionGroup('requests')
+                            .where('status', isEqualTo: 'hod')
+                            .snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        print('Firestore query error: ${snapshot.error}');
+                        return Center(
+                          child: Text(
+                            'Error: ${snapshot.error}',
+                            style: TextStyle(
+                              fontSize: isWeb ? 18 : 16,
+                              color: Colors.red,
+                            ),
+                          ),
+                        );
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        print('No data found or empty snapshot');
+                        return Center(
+                          child: Text(
+                            'No pending leave requests',
+                            style: TextStyle(
+                              fontSize: isWeb ? 18 : 16,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        );
+                      }
+
+                      return FutureBuilder<List<QueryDocumentSnapshot>>(
+                        future: _filterRequestsByDepartment(
+                          snapshot.data!.docs,
+                          hoddepartment,
                         ),
-                      );
-                    }
-                    if (!filteredSnapshot.hasData ||
-                        filteredSnapshot.data!.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'No pending leave requests from your department',
-                          style: TextStyle(fontSize: 16, color: Colors.black54),
-                        ),
-                      );
-                    }
-
-                    final filteredDocs = filteredSnapshot.data!;
-                    print('Filtered data: ${filteredDocs.length} documents');
-
-                    return ListView.builder(
-                      itemCount: filteredDocs.length,
-                      itemBuilder: (context, index) {
-                        final doc = filteredDocs[index];
-                        final data = doc.data() as Map<String, dynamic>;
-                        final requestId = doc.id;
-                        final uid = doc.reference.parent.parent!.id;
-
-                        return FutureBuilder<Map<String, String>>(
-                          future: _fetchStudentInfo(uid),
-                          builder: (context, studentSnapshot) {
-                            if (studentSnapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                child: CircularProgressIndicator(),
-                              );
-                            }
-                            final studentInfo =
-                                studentSnapshot.data ??
-                                {
-                                  'name': 'Unknown',
-                                  'class': 'Unknown',
-                                  'department': 'Unknown',
-                                };
-                            return Card(
-                              elevation: 6,
-                              margin: const EdgeInsets.only(bottom: 16.0),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16.0),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Request from ${studentInfo['name']} (${studentInfo['class']})',
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF0C4D83),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'Department: ${studentInfo['department']}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    Text(
-                                      'From: ${(data['fromDate'] as Timestamp).toDate().day}/${(data['fromDate'] as Timestamp).toDate().month}/${(data['fromDate'] as Timestamp).toDate().year}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    Text(
-                                      'To: ${(data['toDate'] as Timestamp).toDate().day}/${(data['toDate'] as Timestamp).toDate().month}/${(data['toDate'] as Timestamp).toDate().year}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Leave Type: ${data['leaveType']}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    if (data['leaveType'] == 'OD') ...[
-                                      Text(
-                                        'OD Type: ${data['odType']}',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      Text(
-                                        'OD Hours: ${data['odHours']}',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                    ],
-                                    Text(
-                                      'Reason: ${data['reason']}',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    if (data['attachmentUrl'] != null)
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 8.0,
-                                        ),
-                                        child: ElevatedButton(
-                                          onPressed:
-                                              () => _viewAttachment(
-                                                context,
-                                                data['attachmentUrl'],
-                                              ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(
-                                              0xFF0C4D83,
-                                            ),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12.0),
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            'View Attachment',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    const SizedBox(height: 16),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        ElevatedButton(
-                                          onPressed:
-                                              () => _updateRequestStatus(
-                                                context,
-                                                uid,
-                                                requestId,
-                                                'approved',
-                                              ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12.0),
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            'Accept',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        ElevatedButton(
-                                          onPressed:
-                                              () => _updateRequestStatus(
-                                                context,
-                                                uid,
-                                                requestId,
-                                                'rejected',
-                                              ),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.red,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12.0),
-                                            ),
-                                          ),
-                                          child: const Text(
-                                            'Reject',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                        builder: (context, filteredSnapshot) {
+                          if (filteredSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          if (filteredSnapshot.hasError) {
+                            print(
+                              'Error filtering requests: ${filteredSnapshot.error}',
+                            );
+                            return Center(
+                              child: Text(
+                                'Error filtering requests',
+                                style: TextStyle(
+                                  fontSize: isWeb ? 18 : 16,
+                                  color: Colors.red,
                                 ),
                               ),
                             );
-                          },
-                        );
-                      },
-                    );
-                  },
-                );
-              },
+                          }
+                          if (!filteredSnapshot.hasData ||
+                              filteredSnapshot.data!.isEmpty) {
+                            return Center(
+                              child: Text(
+                                'No pending leave requests from your department',
+                                style: TextStyle(
+                                  fontSize: isWeb ? 18 : 16,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            );
+                          }
+
+                          final filteredDocs = filteredSnapshot.data!;
+                          print(
+                            'Filtered data: ${filteredDocs.length} documents',
+                          );
+
+                          return isWeb
+                              ? GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 600,
+                                      childAspectRatio: 1.5,
+                                      crossAxisSpacing: 16,
+                                      mainAxisSpacing: 16,
+                                    ),
+                                itemCount: filteredDocs.length,
+                                itemBuilder: (context, index) {
+                                  return _buildRequestCard(
+                                    context,
+                                    filteredDocs[index],
+                                    isWeb,
+                                  );
+                                },
+                              )
+                              : ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: filteredDocs.length,
+                                itemBuilder: (context, index) {
+                                  return _buildRequestCard(
+                                    context,
+                                    filteredDocs[index],
+                                    isWeb,
+                                  );
+                                },
+                              );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRequestCard(
+    BuildContext context,
+    QueryDocumentSnapshot doc,
+    bool isWeb,
+  ) {
+    final data = doc.data() as Map<String, dynamic>;
+    final requestId = doc.id;
+    final uid = doc.reference.parent.parent!.id;
+
+    return FutureBuilder<Map<String, String>>(
+      future: _fetchStudentInfo(uid),
+      builder: (context, studentSnapshot) {
+        if (studentSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final studentInfo =
+            studentSnapshot.data ??
+            {'name': 'Unknown', 'class': 'Unknown', 'department': 'Unknown'};
+        return MouseRegion(
+          cursor: isWeb ? SystemMouseCursors.click : MouseCursor.defer,
+          child: Card(
+            elevation: isWeb ? 8 : 6,
+            margin:
+                isWeb
+                    ? const EdgeInsets.symmetric(vertical: 8)
+                    : const EdgeInsets.only(
+                      bottom: 12,
+                    ), // Reduced bottom margin
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            color: Colors.white,
+            child: Container(
+              decoration:
+                  isWeb
+                      ? BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 2,
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      )
+                      : null,
+              child: Padding(
+                padding:
+                    isWeb
+                        ? const EdgeInsets.all(20) // Reduced padding
+                        : const EdgeInsets.all(12), // Reduced padding
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Request from ${studentInfo['name']} (${studentInfo['class']})',
+                      style: TextStyle(
+                        fontSize: isWeb ? 20 : 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0C4D83),
+                      ),
+                    ),
+                    const SizedBox(height: 8), // Reduced spacing
+                    Text(
+                      'Department: ${studentInfo['department']}',
+                      style: TextStyle(
+                        fontSize: isWeb ? 15 : 14, // Slightly smaller font
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      'From: ${(data['fromDate'] as Timestamp).toDate().day}/${(data['fromDate'] as Timestamp).toDate().month}/${(data['fromDate'] as Timestamp).toDate().year}',
+                      style: TextStyle(
+                        fontSize: isWeb ? 15 : 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      'To: ${(data['toDate'] as Timestamp).toDate().day}/${(data['toDate'] as Timestamp).toDate().month}/${(data['toDate'] as Timestamp).toDate().year}',
+                      style: TextStyle(
+                        fontSize: isWeb ? 15 : 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Text(
+                      'Leave Type: ${data['leaveType']}',
+                      style: TextStyle(
+                        fontSize: isWeb ? 15 : 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    if (data['leaveType'] == 'OD') ...[
+                      Text(
+                        'OD Type: ${data['odType']}',
+                        style: TextStyle(
+                          fontSize: isWeb ? 15 : 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      Text(
+                        'OD Hours: ${data['odHours']}',
+                        style: TextStyle(
+                          fontSize: isWeb ? 15 : 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                    Text(
+                      'Reason: ${data['reason']}',
+                      style: TextStyle(
+                        fontSize: isWeb ? 15 : 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    if (data['attachmentUrl'] != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: ElevatedButton(
+                          onPressed:
+                              () => _viewAttachment(
+                                context,
+                                data['attachmentUrl'],
+                              ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF0C4D83),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding:
+                                isWeb
+                                    ? const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 10,
+                                    )
+                                    : const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                          ),
+                          child: Text(
+                            'View Attachment',
+                            style: TextStyle(
+                              fontSize: isWeb ? 15 : 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 12), // Reduced spacing
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        ElevatedButton(
+                          onPressed:
+                              () => _updateRequestStatus(
+                                context,
+                                uid,
+                                requestId,
+                                'approved',
+                              ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding:
+                                isWeb
+                                    ? const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 10,
+                                    )
+                                    : const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                          ),
+                          child: Text(
+                            'Accept',
+                            style: TextStyle(
+                              fontSize: isWeb ? 15 : 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8), // Reduced spacing
+                        ElevatedButton(
+                          onPressed:
+                              () => _updateRequestStatus(
+                                context,
+                                uid,
+                                requestId,
+                                'rejected',
+                              ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding:
+                                isWeb
+                                    ? const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 10,
+                                    )
+                                    : const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                          ),
+                          child: Text(
+                            'Reject',
+                            style: TextStyle(
+                              fontSize: isWeb ? 15 : 13,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         );

@@ -35,4 +35,24 @@
 <body>
   <script src="flutter_bootstrap.js" async></script>
 </body>
+
+<script>
+  window.flutterWebRenderer = "html"; // Use HTML renderer for compatibility
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+<script>
+  var firebaseConfig = {
+    apiKey: 'AIzaSyA0BCnbbd9fNJIO_AyTpxrtSUtKk1r61qE',
+    appId: '1:311846400263:web:21181242c2f97f4c38d5a2',
+    messagingSenderId: '311846400263',
+    projectId: 'ritian',
+    authDomain: 'ritian.firebaseapp.com',
+    storageBucket: 'ritian.firebasestorage.app',
+    measurementId: 'G-KBG48E47CS'
+  };
+  firebase.initializeApp(firebaseConfig);
+</script>
+
 </html>
