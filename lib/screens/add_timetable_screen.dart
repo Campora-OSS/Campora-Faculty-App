@@ -18,22 +18,36 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   String? selectedClass;
   bool _isLoading = false;
   String? _existingTimetableId;
+  bool _isDataLoaded = false;
 
-  Map<String, Map<String, Map<String, String>>> timetable = {};
+  Map<String, Map<String, Map<String, String?>>> timetable = {};
 
   @override
   void initState() {
     super.initState();
-    _fetchSubjects();
-    _fetchFaculty();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    await Future.wait([_fetchSubjects(), _fetchFaculty()]);
+    setState(() {
+      _isDataLoaded = true;
+    });
   }
 
   Future<void> _fetchSubjects() async {
     final snapshot =
         await FirebaseFirestore.instance.collection('subjects').get();
     setState(() {
-      subjects =
-          snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+      final uniqueSubjects = <String, Map<String, dynamic>>{};
+      for (var doc in snapshot.docs) {
+        final data = {...doc.data(), 'id': doc.id};
+        final subjectCode = data['subject_code'] as String;
+        if (!uniqueSubjects.containsKey(subjectCode)) {
+          uniqueSubjects[subjectCode] = data;
+        }
+      }
+      subjects = uniqueSubjects.values.toList();
       print(
         'Fetched subjects: ${subjects.map((s) => s['subject_code']).toList()}',
       );
@@ -44,13 +58,24 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
     final snapshot =
         await FirebaseFirestore.instance.collection('faculty_members').get();
     setState(() {
-      faculty =
-          snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+      final uniqueFaculty = <String, Map<String, dynamic>>{};
+      for (var doc in snapshot.docs) {
+        final data = {...doc.data(), 'id': doc.id};
+        final staffCode = data['staff_code'] as String;
+        if (!uniqueFaculty.containsKey(staffCode)) {
+          uniqueFaculty[staffCode] = data;
+        }
+      }
+      faculty = uniqueFaculty.values.toList();
       print('Fetched faculty: ${faculty.map((f) => f['staff_code']).toList()}');
     });
   }
 
   Future<void> _fetchTimetable(String className) async {
+    if (!_isDataLoaded) {
+      await _loadInitialData();
+    }
+
     try {
       final snapshot =
           await FirebaseFirestore.instance
@@ -95,8 +120,8 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
               }
 
               timetable[day]![period] = {
-                'subject': isValidSubject ? subjectCode : '',
-                'faculty': isValidFaculty ? facultyCode : '',
+                'subject': isValidSubject ? subjectCode : null,
+                'faculty': isValidFaculty ? facultyCode : null,
               };
               final periodNum = int.tryParse(period) ?? 0;
               if (periodNum > _numberOfPeriods) {
@@ -170,6 +195,10 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   }
 
   Widget _buildTimetableGrid(bool isWeb) {
+    if (!_isDataLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_numberOfPeriods == 0) {
       return const Center(
         child: Text(
@@ -234,68 +263,84 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                       children: [
                         SizedBox(
                           width: isWeb ? 120 : 100,
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            hint: Text(
-                              'Sub',
-                              style: TextStyle(fontSize: isWeb ? 14 : 12),
-                            ),
-                            value: validSubject,
-                            onChanged: (String? value) {
-                              setState(() {
-                                timetable[day] ??= {};
-                                timetable[day]![periodKey] ??= {};
-                                timetable[day]![periodKey]!['subject'] =
-                                    value ?? '';
-                              });
-                            },
-                            items:
-                                subjects.map((subject) {
-                                  return DropdownMenuItem<String>(
-                                    value: subject['subject_code'],
-                                    child: Text(
-                                      subject['subject_name'],
+                          child:
+                              subjects.isEmpty
+                                  ? const Text('No subjects available')
+                                  : DropdownButton<String>(
+                                    isExpanded: true,
+                                    hint: Text(
+                                      'Sub',
                                       style: TextStyle(
                                         fontSize: isWeb ? 14 : 12,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  );
-                                }).toList(),
-                          ),
+                                    value: validSubject,
+                                    onChanged: (String? value) {
+                                      setState(() {
+                                        timetable[day] ??= {};
+                                        timetable[day]![periodKey] ??= {};
+                                        timetable[day]![periodKey]!['subject'] =
+                                            value;
+                                      });
+                                    },
+                                    items:
+                                        subjects.map((subject) {
+                                          print(
+                                            'Subject item for $day, period $periodKey: ${subject['subject_code']}',
+                                          );
+                                          return DropdownMenuItem<String>(
+                                            value: subject['subject_code'],
+                                            child: Text(
+                                              subject['subject_name'],
+                                              style: TextStyle(
+                                                fontSize: isWeb ? 14 : 12,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                  ),
                         ),
                         const SizedBox(width: 4),
                         SizedBox(
                           width: isWeb ? 120 : 100,
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            hint: Text(
-                              'Fac',
-                              style: TextStyle(fontSize: isWeb ? 14 : 12),
-                            ),
-                            value: validFaculty,
-                            onChanged: (String? value) {
-                              setState(() {
-                                timetable[day] ??= {};
-                                timetable[day]![periodKey] ??= {};
-                                timetable[day]![periodKey]!['faculty'] =
-                                    value ?? '';
-                              });
-                            },
-                            items:
-                                faculty.map((fac) {
-                                  return DropdownMenuItem<String>(
-                                    value: fac['staff_code'],
-                                    child: Text(
-                                      fac['name'],
+                          child:
+                              faculty.isEmpty
+                                  ? const Text('No faculty available')
+                                  : DropdownButton<String>(
+                                    isExpanded: true,
+                                    hint: Text(
+                                      'Fac',
                                       style: TextStyle(
                                         fontSize: isWeb ? 14 : 12,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  );
-                                }).toList(),
-                          ),
+                                    value: validFaculty,
+                                    onChanged: (String? value) {
+                                      setState(() {
+                                        timetable[day] ??= {};
+                                        timetable[day]![periodKey] ??= {};
+                                        timetable[day]![periodKey]!['faculty'] =
+                                            value;
+                                      });
+                                    },
+                                    items:
+                                        faculty.map((fac) {
+                                          print(
+                                            'Faculty item for $day, period $periodKey: ${fac['staff_code']}',
+                                          );
+                                          return DropdownMenuItem<String>(
+                                            value: fac['staff_code'],
+                                            child: Text(
+                                              fac['name'],
+                                              style: TextStyle(
+                                                fontSize: isWeb ? 14 : 12,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                  ),
                         ),
                       ],
                     ),
