@@ -52,7 +52,7 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
               .get();
       if (doc.exists) {
         setState(() {
-          _facultyType = doc.data()?['faculty_type'] ?? '';
+          _facultyType = doc.data()?['faculty_type']?.toString() ?? '';
         });
       }
     }
@@ -255,7 +255,6 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
     }
   }
 
-  // Prompt admin for password
   Future<String?> _promptAdminPassword(BuildContext context) async {
     final TextEditingController passwordController = TextEditingController();
     String? password;
@@ -305,6 +304,27 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
     if (_facultyType != 'Admin') {
       print('Unauthorized access attempt: $_facultyType');
       return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'Unauthorized',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: const Color(0xFF0C4D83),
+          leading:
+              isWeb
+                  ? null
+                  : Builder(
+                    builder:
+                        (context) => IconButton(
+                          icon: const Icon(Icons.menu, color: Colors.white),
+                          onPressed: () => Scaffold.of(context).openDrawer(),
+                        ),
+                  ),
+        ),
         drawer: isWeb ? null : const AppDrawer(),
         body: Center(
           child: Text(
@@ -316,13 +336,34 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
     }
 
     return Scaffold(
-      drawer: isWeb ? null : const AppDrawer(), // Drawer only for mobile
+      appBar: AppBar(
+        title: const Text(
+          'Add Faculty',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFF0C4D83),
+        leading:
+            isWeb
+                ? null
+                : Builder(
+                  builder:
+                      (context) => IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.white),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                ),
+      ),
+      drawer: isWeb ? null : const AppDrawer(),
       body:
           isWeb
               ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AppDrawer(), // Persistent sidebar for web
+                  const AppDrawer(),
                   Expanded(child: _buildContent(context, isWeb)),
                 ],
               )
@@ -333,8 +374,7 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
   Widget _buildContent(BuildContext context, bool isWeb) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableHeight =
-            constraints.maxHeight - (isWeb ? 48 : 32); // Subtract padding
+        final availableHeight = constraints.maxHeight - (isWeb ? 48 : 32);
         return SingleChildScrollView(
           child: Padding(
             padding:
@@ -367,11 +407,7 @@ class _AddFacultyScreenState extends State<AddFacultyScreen> {
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
-                  height:
-                      isWeb
-                          ? null
-                          : availableHeight -
-                              84, // Adjust for title, search, button
+                  height: isWeb ? null : availableHeight - 84,
                   child:
                       _filteredFacultyList.isEmpty
                           ? const Center(

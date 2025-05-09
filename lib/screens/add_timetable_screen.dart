@@ -17,9 +17,8 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   List<String> classes = ['AIDS E', 'CSE A', 'ECE B', 'MECH C'];
   String? selectedClass;
   bool _isLoading = false;
-  String? _existingTimetableId; // Store ID of existing timetable
+  String? _existingTimetableId;
 
-  // Timetable data: {day: {period: {subject, faculty}}}
   Map<String, Map<String, Map<String, String>>> timetable = {};
 
   @override
@@ -35,6 +34,9 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
     setState(() {
       subjects =
           snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+      print(
+        'Fetched subjects: ${subjects.map((s) => s['subject_code']).toList()}',
+      );
     });
   }
 
@@ -44,6 +46,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
     setState(() {
       faculty =
           snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+      print('Fetched faculty: ${faculty.map((f) => f['staff_code']).toList()}');
     });
   }
 
@@ -67,17 +70,44 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
           timetable = {};
           _numberOfPeriods = 0;
 
-          // Parse timetable and determine max periods
           loadedTimetable.forEach((day, periods) {
             timetable[day] = {};
             periods.forEach((period, details) {
-              timetable[day]![period] = Map<String, String>.from(details);
+              final detailsMap = Map<String, String>.from(details);
+              final subjectCode = detailsMap['subject'];
+              final facultyCode = detailsMap['faculty'];
+              final isValidSubject =
+                  subjectCode != null &&
+                  subjects.any((s) => s['subject_code'] == subjectCode);
+              final isValidFaculty =
+                  facultyCode != null &&
+                  faculty.any((f) => f['staff_code'] == facultyCode);
+
+              if (!isValidSubject && subjectCode != null) {
+                print(
+                  'Invalid subject code in $day, period $period: $subjectCode',
+                );
+              }
+              if (!isValidFaculty && facultyCode != null) {
+                print(
+                  'Invalid faculty code in $day, period $period: $facultyCode',
+                );
+              }
+
+              timetable[day]![period] = {
+                'subject': isValidSubject ? subjectCode : '',
+                'faculty': isValidFaculty ? facultyCode : '',
+              };
               final periodNum = int.tryParse(period) ?? 0;
               if (periodNum > _numberOfPeriods) {
                 _numberOfPeriods = periodNum;
               }
             });
           });
+
+          if (timetable.isEmpty) {
+            print('No valid timetable data found for class: $className');
+          }
         });
       } else {
         setState(() {
@@ -87,6 +117,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
         });
       }
     } catch (e) {
+      print('Error fetching timetable: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Failed to load timetable: $e')));
@@ -113,13 +144,11 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
       };
 
       if (_existingTimetableId != null) {
-        // Update existing timetable
         await FirebaseFirestore.instance
             .collection('timetables')
             .doc(_existingTimetableId)
             .update(timetableData);
       } else {
-        // Create new timetable
         await FirebaseFirestore.instance
             .collection('timetables')
             .add(timetableData);
@@ -182,11 +211,27 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                   final String? currentFaculty =
                       timetable[day]?[periodKey]?['faculty'];
 
+                  final validSubject =
+                      currentSubject != null &&
+                              currentSubject.isNotEmpty &&
+                              subjects.any(
+                                (s) => s['subject_code'] == currentSubject,
+                              )
+                          ? currentSubject
+                          : null;
+                  final validFaculty =
+                      currentFaculty != null &&
+                              currentFaculty.isNotEmpty &&
+                              faculty.any(
+                                (f) => f['staff_code'] == currentFaculty,
+                              )
+                          ? currentFaculty
+                          : null;
+
                   return DataCell(
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Subject Dropdown
                         SizedBox(
                           width: isWeb ? 120 : 100,
                           child: DropdownButton<String>(
@@ -195,12 +240,13 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                               'Sub',
                               style: TextStyle(fontSize: isWeb ? 14 : 12),
                             ),
-                            value: currentSubject,
+                            value: validSubject,
                             onChanged: (String? value) {
                               setState(() {
                                 timetable[day] ??= {};
                                 timetable[day]![periodKey] ??= {};
-                                timetable[day]![periodKey]!['subject'] = value!;
+                                timetable[day]![periodKey]!['subject'] =
+                                    value ?? '';
                               });
                             },
                             items:
@@ -219,7 +265,6 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        // Faculty Dropdown
                         SizedBox(
                           width: isWeb ? 120 : 100,
                           child: DropdownButton<String>(
@@ -228,12 +273,13 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                               'Fac',
                               style: TextStyle(fontSize: isWeb ? 14 : 12),
                             ),
-                            value: currentFaculty,
+                            value: validFaculty,
                             onChanged: (String? value) {
                               setState(() {
                                 timetable[day] ??= {};
                                 timetable[day]![periodKey] ??= {};
-                                timetable[day]![periodKey]!['faculty'] = value!;
+                                timetable[day]![periodKey]!['faculty'] =
+                                    value ?? '';
                               });
                             },
                             items:
@@ -279,6 +325,27 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
     final bool isWeb = MediaQuery.of(context).size.width > 800;
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Add Timetable',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFF0C4D83),
+        leading:
+            isWeb
+                ? null
+                : Builder(
+                  builder:
+                      (context) => IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.white),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                ),
+      ),
       drawer: isWeb ? null : const AppDrawer(),
       body:
           isWeb
@@ -296,7 +363,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   Widget _buildContent(BuildContext context, bool isWeb) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableHeight = constraints.maxHeight - (isWeb ? 48 : 32);
+        final availableHeight = constraints.maxHeight - (isWeb ? 104 : 88);
         return SingleChildScrollView(
           child: Padding(
             padding:
@@ -329,8 +396,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                     setState(() {
                       _numberOfPeriods = int.tryParse(value) ?? 0;
                       timetable.clear();
-                      _existingTimetableId =
-                          null; // Reset if manually changing periods
+                      _existingTimetableId = null;
                     });
                   },
                 ),

@@ -61,13 +61,37 @@ class _FacultyDetailsScreenState extends State<FacultyDetailsScreen> {
     final bool isWeb = MediaQuery.of(context).size.width > 800;
 
     return Scaffold(
-      drawer: isWeb ? null : const AppDrawer(), // Drawer only for mobile
+      appBar: AppBar(
+        title: const Text(
+          'Faculty Details',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFF0C4D83),
+        leading:
+            isWeb
+                ? IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                )
+                : Builder(
+                  builder:
+                      (context) => IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.white),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                ),
+      ),
+      drawer: isWeb ? null : const AppDrawer(),
       body:
           isWeb
               ? Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AppDrawer(), // Persistent sidebar for web
+                  const AppDrawer(),
                   Expanded(child: _buildContent(context, isWeb)),
                 ],
               )
@@ -78,8 +102,7 @@ class _FacultyDetailsScreenState extends State<FacultyDetailsScreen> {
   Widget _buildContent(BuildContext context, bool isWeb) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableHeight =
-            constraints.maxHeight - (isWeb ? 48 : 32); // Subtract padding
+        final availableHeight = constraints.maxHeight - (isWeb ? 104 : 88);
         return SingleChildScrollView(
           child: Padding(
             padding:
