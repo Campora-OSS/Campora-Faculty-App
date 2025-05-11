@@ -28,6 +28,10 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+<string>We need access to your photo library to save the Excel file.</string>
+<key>NSPhotoLibraryAddUsageDescription</key>
+<string>We need access to save the Excel file to your photo library.</string>
   <key>LSApplicationQueriesSchemes</key>
 <array>
   <string>https</string>

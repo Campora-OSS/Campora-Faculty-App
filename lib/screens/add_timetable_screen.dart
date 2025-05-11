@@ -14,7 +14,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   List<String> days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
   List<Map<String, dynamic>> subjects = [];
   List<Map<String, dynamic>> faculty = [];
-  List<String> classes = ['AIDS E', 'CSE A', 'ECE B', 'MECH C'];
+  List<String> classes = [];
   String? selectedClass;
   bool _isLoading = false;
   String? _existingTimetableId;
@@ -29,21 +29,37 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   }
 
   Future<void> _loadInitialData() async {
-    await Future.wait([_fetchSubjects(), _fetchFaculty()]);
     setState(() {
-      _isDataLoaded = true;
+      _isLoading = true;
     });
+    try {
+      await Future.wait([_fetchSubjects(), _fetchFaculty(), _fetchClasses()]);
+    } catch (e) {
+      print('Error loading initial data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Error loading data: $e. Some features may be limited.',
+          ),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isDataLoaded = true;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _fetchSubjects() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('subjects').get();
-    setState(() {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('subjects').get();
       final uniqueSubjects = <String, Map<String, dynamic>>{};
       for (var doc in snapshot.docs) {
         final data = {...doc.data(), 'id': doc.id};
-        final subjectCode = data['subject_code'] as String;
-        if (!uniqueSubjects.containsKey(subjectCode)) {
+        final subjectCode = data['subject_code'] as String?;
+        if (subjectCode != null && !uniqueSubjects.containsKey(subjectCode)) {
           uniqueSubjects[subjectCode] = data;
         }
       }
@@ -51,24 +67,48 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
       print(
         'Fetched subjects: ${subjects.map((s) => s['subject_code']).toList()}',
       );
-    });
+    } catch (e) {
+      print('Error fetching subjects: $e');
+      throw e;
+    }
   }
 
   Future<void> _fetchFaculty() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('faculty_members').get();
-    setState(() {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('faculty_members').get();
       final uniqueFaculty = <String, Map<String, dynamic>>{};
       for (var doc in snapshot.docs) {
         final data = {...doc.data(), 'id': doc.id};
-        final staffCode = data['staff_code'] as String;
-        if (!uniqueFaculty.containsKey(staffCode)) {
+        final staffCode = data['staff_code'] as String?;
+        if (staffCode != null && !uniqueFaculty.containsKey(staffCode)) {
           uniqueFaculty[staffCode] = data;
         }
       }
       faculty = uniqueFaculty.values.toList();
       print('Fetched faculty: ${faculty.map((f) => f['staff_code']).toList()}');
-    });
+    } catch (e) {
+      print('Error fetching faculty: $e');
+      throw e;
+    }
+  }
+
+  Future<void> _fetchClasses() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('academic').get();
+      final classList = <String>{};
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final deptClasses = List<String>.from(data['classes'] ?? []);
+        classList.addAll(deptClasses);
+      }
+      classes = classList.toList()..sort();
+      print('Fetched classes: $classes');
+    } catch (e) {
+      print('Error fetching classes: $e');
+      throw e;
+    }
   }
 
   Future<void> _fetchTimetable(String className) async {
@@ -406,6 +446,10 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
   }
 
   Widget _buildContent(BuildContext context, bool isWeb) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight - (isWeb ? 104 : 88);
@@ -457,17 +501,27 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                     fillColor: Colors.grey[100],
                   ),
                   items:
-                      classes
-                          .map(
-                            (className) => DropdownMenuItem(
-                              value: className,
+                      classes.isEmpty
+                          ? [
+                            const DropdownMenuItem(
+                              value: null,
                               child: Text(
-                                className,
-                                style: TextStyle(fontSize: isWeb ? 16 : 14),
+                                'No classes available',
+                                style: TextStyle(fontSize: 14),
                               ),
                             ),
-                          )
-                          .toList(),
+                          ]
+                          : classes
+                              .map(
+                                (className) => DropdownMenuItem(
+                                  value: className,
+                                  child: Text(
+                                    className,
+                                    style: TextStyle(fontSize: isWeb ? 16 : 14),
+                                  ),
+                                ),
+                              )
+                              .toList(),
                   onChanged: (value) {
                     setState(() {
                       selectedClass = value;
@@ -519,9 +573,7 @@ class _AddTimetableScreenState extends State<AddTimetableScreen> {
                     ),
                     child:
                         _isLoading
-                            ? const CircularProgressIndicator(
-                              color: Colors.white,
-                            )
+                            ? const CircularProgressIndicator()
                             : Text(
                               'Save Timetable',
                               style: TextStyle(

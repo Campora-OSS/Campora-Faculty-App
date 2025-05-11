@@ -192,6 +192,27 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
     final bool isWeb = MediaQuery.of(context).size.width > 800;
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Announcements',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: const Color(0xFF0C4D83),
+        leading:
+            isWeb
+                ? null
+                : Builder(
+                  builder:
+                      (context) => IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.white),
+                        onPressed: () => Scaffold.of(context).openDrawer(),
+                      ),
+                ),
+      ),
       drawer: isWeb ? null : const AppDrawer(),
       body:
           isWeb
@@ -209,226 +230,265 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   Widget _buildContent(BuildContext context, bool isWeb) {
     return !_isDataLoaded
         ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-          child: Padding(
-            padding:
-                isWeb
-                    ? const EdgeInsets.fromLTRB(24, 24, 24, 16)
-                    : const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Post Announcement',
-                  style: TextStyle(
-                    fontSize: isWeb ? 28 : 24,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0C4D83),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  elevation: isWeb ? 6 : 4,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  child: Padding(
-                    padding:
-                        isWeb
-                            ? const EdgeInsets.all(16.0)
-                            : const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _announcementController,
-                          decoration: InputDecoration(
-                            labelText: 'Announcement',
-                            border: const OutlineInputBorder(),
-                            contentPadding:
-                                isWeb
-                                    ? const EdgeInsets.all(16)
-                                    : const EdgeInsets.all(12),
-                          ),
-                          maxLines: 3,
-                          style: TextStyle(fontSize: isWeb ? 16 : 14),
-                        ),
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: _selectedViewer,
-                          items:
-                              _viewerOptions.map((option) {
-                                return DropdownMenuItem(
-                                  value: option,
-                                  child: Text(
-                                    option,
-                                    style: TextStyle(fontSize: isWeb ? 16 : 14),
-                                  ),
-                                );
-                              }).toList(),
-                          onChanged:
-                              _viewerOptions.isEmpty
-                                  ? null
-                                  : (value) {
-                                    setState(() {
-                                      _selectedViewer = value;
-                                      _selectedClass = null;
-                                      _selectedFaculty = null;
-                                      _selectedDepartment = null;
-                                    });
-                                  },
-                          decoration: InputDecoration(
-                            labelText: 'Target Audience',
-                            border: const OutlineInputBorder(),
-                            contentPadding:
-                                isWeb
-                                    ? const EdgeInsets.all(16)
-                                    : const EdgeInsets.all(12),
-                          ),
-                          style: TextStyle(fontSize: isWeb ? 16 : 14),
-                        ),
-                        const SizedBox(height: 16),
-                        if (_selectedViewer == 'Students') ...[
-                          DropdownButtonFormField<String>(
-                            value: _selectedClass,
-                            items: [
-                              ..._classes.map((className) {
-                                return DropdownMenuItem(
-                                  value: className,
-                                  child: Text(
-                                    className,
-                                    style: TextStyle(fontSize: isWeb ? 16 : 14),
-                                  ),
-                                );
-                              }),
-                              const DropdownMenuItem(
-                                value: 'All Classes',
-                                child: Text('All Classes'),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedClass = value;
-                              });
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Select Class',
-                              border: const OutlineInputBorder(),
-                              contentPadding:
-                                  isWeb
-                                      ? const EdgeInsets.all(16)
-                                      : const EdgeInsets.all(12),
-                            ),
-                            style: TextStyle(fontSize: isWeb ? 16 : 14),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        if (_selectedViewer == 'Individual Faculties') ...[
-                          DropdownButtonFormField<String>(
-                            value: _selectedFaculty,
-                            items:
-                                _faculties.map((faculty) {
-                                  return DropdownMenuItem(
-                                    value: faculty['id'] as String,
-                                    child: Text(
-                                      faculty['name'] as String,
-                                      style: TextStyle(
-                                        fontSize: isWeb ? 16 : 14,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedFaculty = value;
-                              });
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Select Faculty',
-                              border: const OutlineInputBorder(),
-                              contentPadding:
-                                  isWeb
-                                      ? const EdgeInsets.all(16)
-                                      : const EdgeInsets.all(12),
-                            ),
-                            style: TextStyle(fontSize: isWeb ? 16 : 14),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        if (_selectedViewer == 'Department Faculties') ...[
-                          DropdownButtonFormField<String>(
-                            value: _selectedDepartment,
-                            items:
-                                _departments.map((dept) {
-                                  return DropdownMenuItem(
-                                    value: dept,
-                                    child: Text(
-                                      dept,
-                                      style: TextStyle(
-                                        fontSize: isWeb ? 16 : 14,
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedDepartment = value;
-                              });
-                            },
-                            decoration: InputDecoration(
-                              labelText: 'Select Department',
-                              border: const OutlineInputBorder(),
-                              contentPadding:
-                                  isWeb
-                                      ? const EdgeInsets.all(16)
-                                      : const EdgeInsets.all(12),
-                            ),
-                            style: TextStyle(fontSize: isWeb ? 16 : 14),
-                          ),
-                          const SizedBox(height: 16),
-                        ],
-                        Center(
-                          child: ElevatedButton(
-                            onPressed: _isPosting ? null : _postAnnouncement,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.teal,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8.0),
-                              ),
-                              padding:
-                                  isWeb
-                                      ? const EdgeInsets.symmetric(
-                                        vertical: 14.0,
-                                        horizontal: 30.0,
-                                      )
-                                      : const EdgeInsets.symmetric(
-                                        vertical: 12.0,
-                                        horizontal: 24.0,
-                                      ),
-                              elevation: 6,
-                            ),
-                            child:
-                                _isPosting
-                                    ? const CircularProgressIndicator(
-                                      color: Colors.white,
-                                    )
-                                    : Text(
-                                      'Post Announcement',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: isWeb ? 16 : 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                          ),
-                        ),
-                      ],
+        : LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: Padding(
+                padding:
+                    isWeb
+                        ? const EdgeInsets.fromLTRB(24, 24, 24, 16)
+                        : const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Post Announcement',
+                      style: TextStyle(
+                        fontSize: isWeb ? 28 : 24,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0C4D83),
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    Card(
+                      elevation: isWeb ? 8 : 6,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                      child: Padding(
+                        padding:
+                            isWeb
+                                ? const EdgeInsets.all(20.0)
+                                : const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Announcement Details',
+                              style: TextStyle(
+                                fontSize: isWeb ? 20 : 18,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF0C4D83),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _announcementController,
+                              decoration: InputDecoration(
+                                labelText: 'Announcement',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                                contentPadding:
+                                    isWeb
+                                        ? const EdgeInsets.all(16)
+                                        : const EdgeInsets.all(12),
+                              ),
+                              maxLines: 3,
+                              style: TextStyle(fontSize: isWeb ? 16 : 14),
+                            ),
+                            const SizedBox(height: 8),
+                            DropdownButtonFormField<String>(
+                              value: _selectedViewer,
+                              items:
+                                  _viewerOptions.map((option) {
+                                    return DropdownMenuItem(
+                                      value: option,
+                                      child: Text(
+                                        option,
+                                        style: TextStyle(
+                                          fontSize: isWeb ? 16 : 14,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                              onChanged:
+                                  _viewerOptions.isEmpty
+                                      ? null
+                                      : (value) {
+                                        setState(() {
+                                          _selectedViewer = value;
+                                          _selectedClass = null;
+                                          _selectedFaculty = null;
+                                          _selectedDepartment = null;
+                                        });
+                                      },
+                              decoration: InputDecoration(
+                                labelText: 'Target Audience',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                                contentPadding:
+                                    isWeb
+                                        ? const EdgeInsets.all(16)
+                                        : const EdgeInsets.all(12),
+                              ),
+                              style: TextStyle(fontSize: isWeb ? 16 : 14),
+                            ),
+                            const SizedBox(height: 8),
+                            if (_selectedViewer == 'Students') ...[
+                              DropdownButtonFormField<String>(
+                                value: _selectedClass,
+                                items: [
+                                  ..._classes.map((className) {
+                                    return DropdownMenuItem(
+                                      value: className,
+                                      child: Text(
+                                        className,
+                                        style: TextStyle(
+                                          fontSize: isWeb ? 16 : 14,
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                  const DropdownMenuItem(
+                                    value: 'All Classes',
+                                    child: Text('All Classes'),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedClass = value;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  labelText: 'Select Class',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                  contentPadding:
+                                      isWeb
+                                          ? const EdgeInsets.all(16)
+                                          : const EdgeInsets.all(12),
+                                ),
+                                style: TextStyle(fontSize: isWeb ? 16 : 14),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            if (_selectedViewer == 'Individual Faculties') ...[
+                              DropdownButtonFormField<String>(
+                                value: _selectedFaculty,
+                                items:
+                                    _faculties.map((faculty) {
+                                      return DropdownMenuItem(
+                                        value: faculty['id'] as String,
+                                        child: Text(
+                                          faculty['name'] as String,
+                                          style: TextStyle(
+                                            fontSize: isWeb ? 16 : 14,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedFaculty = value;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  labelText: 'Select Faculty',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                  contentPadding:
+                                      isWeb
+                                          ? const EdgeInsets.all(16)
+                                          : const EdgeInsets.all(12),
+                                ),
+                                style: TextStyle(fontSize: isWeb ? 16 : 14),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            if (_selectedViewer == 'Department Faculties') ...[
+                              DropdownButtonFormField<String>(
+                                value: _selectedDepartment,
+                                items:
+                                    _departments.map((dept) {
+                                      return DropdownMenuItem(
+                                        value: dept,
+                                        child: Text(
+                                          dept,
+                                          style: TextStyle(
+                                            fontSize: isWeb ? 16 : 14,
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedDepartment = value;
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  labelText: 'Select Department',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey[100],
+                                  contentPadding:
+                                      isWeb
+                                          ? const EdgeInsets.all(16)
+                                          : const EdgeInsets.all(12),
+                                ),
+                                style: TextStyle(fontSize: isWeb ? 16 : 14),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                            const SizedBox(height: 16),
+                            Center(
+                              child: ElevatedButton(
+                                onPressed:
+                                    _isPosting ? null : _postAnnouncement,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.teal,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8.0),
+                                  ),
+                                  padding:
+                                      isWeb
+                                          ? const EdgeInsets.symmetric(
+                                            vertical: 14.0,
+                                            horizontal: 30.0,
+                                          )
+                                          : const EdgeInsets.symmetric(
+                                            vertical: 12.0,
+                                            horizontal: 24.0,
+                                          ),
+                                  elevation: 6,
+                                ),
+                                child:
+                                    _isPosting
+                                        ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                        : Text(
+                                          'Post Announcement',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: isWeb ? 16 : 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
   }
 

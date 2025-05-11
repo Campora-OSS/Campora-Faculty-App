@@ -7,6 +7,9 @@ import 'package:ritian_faculty/screens/add_subject_screen.dart';
 import 'package:ritian_faculty/screens/add_timetable_screen.dart';
 import 'package:ritian_faculty/screens/announcement_screen.dart';
 import 'package:ritian_faculty/screens/faculty_timetable_screen.dart';
+import 'package:ritian_faculty/screens/manage_academics.dart';
+import 'package:ritian_faculty/screens/manage_faculties_screen.dart';
+import 'package:ritian_faculty/screens/manage_students_screen.dart';
 import 'package:ritian_faculty/screens/student_leave_requests_hod.dart';
 import 'package:ritian_faculty/screens/student_leave_requests_screen.dart';
 import 'screens/login_screen.dart';
@@ -59,10 +62,12 @@ class MyApp extends StatelessWidget {
             (context) => const StudentLeaveRequestsScreen(),
         '/student_leave_requests_hod':
             (context) => const StudentLeaveRequestsHodScreen(),
-        '/add_students': (context) => AddStudentScreen(),
+        '/manage_faculty': (context) => ManageFacultiesScreen(),
         '/add_faculty': (context) => AddFacultyScreen(),
         '/announcement': (context) => AnnouncementScreen(),
+        '/manage_academics': (context) => const ManageAcademicsScreen(),
         '/add_subject': (context) => const AddSubjectScreen(),
+        '/manage_students': (context) => ManageStudentsScreen(),
         '/add_timetable': (context) => const AddTimetableScreen(),
         '/faculty_timetable': (context) => const FacultyTimetableScreen(),
         '/under_construction': (context) => const UnderConstructionScreen(),

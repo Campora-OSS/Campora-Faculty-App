@@ -76,6 +76,12 @@ class _AppDrawerState extends State<AppDrawer> {
                       () => Navigator.pushNamed(context, '/faculty_timetable'),
                 ),
                 ListTile(
+                  leading: const Icon(Icons.assignment_ind_sharp),
+                  title: const Text('Manage Students'),
+                  onTap:
+                      () => Navigator.pushNamed(context, '/manage_students'),
+                ),
+                ListTile(
                   leading: const Icon(Icons.book),
                   title: const Text('My Subjects'),
                   onTap:
@@ -110,8 +116,8 @@ class _AppDrawerState extends State<AppDrawer> {
                 if (facultyType == 'Admin')
                   ListTile(
                     leading: const Icon(Icons.person),
-                    title: const Text('Add Faculty'),
-                    onTap: () => Navigator.pushNamed(context, '/add_faculty'),
+                    title: const Text('Manage Faculty'),
+                    onTap: () => Navigator.pushNamed(context, '/manage_faculty'),
                   ),
                 if (facultyType == 'Admin')
                   ListTile(
@@ -119,6 +125,12 @@ class _AppDrawerState extends State<AppDrawer> {
                     title: const Text('Add Students'),
                     onTap: () => Navigator.pushNamed(context, '/add_students'),
                   ),
+                if (facultyType == 'Admin')
+                ListTile(
+                  leading: const Icon(Icons.book),
+                  title: const Text('Manage Academics'),
+                  onTap: () => Navigator.pushNamed(context, '/manage_academics'),
+                ),
                 if (facultyType == 'Admin')
                   ListTile(
                     leading: const Icon(Icons.book),
