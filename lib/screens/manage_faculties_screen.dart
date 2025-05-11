@@ -1900,7 +1900,7 @@ class _EditFacultyScreenState extends State<EditFacultyScreen> {
   late TextEditingController _ageController;
   late TextEditingController _birthdayController;
   late TextEditingController _dateOfJoiningController;
-  late TextEditingController _departmentController;
+  String? _selectedDepartment;
   late TextEditingController _highestDegreeController;
   late TextEditingController _phoneController;
   late TextEditingController _religionController;
@@ -1908,6 +1908,7 @@ class _EditFacultyScreenState extends State<EditFacultyScreen> {
   late TextEditingController _totalExperienceController;
   String? _selectedFacultyType;
   bool _isLoading = false;
+  List<String> _departments = [];
 
   final List<String> _facultyTypes = ['Associate Professor', 'HoD', 'Admin'];
 
@@ -1931,9 +1932,6 @@ class _EditFacultyScreenState extends State<EditFacultyScreen> {
     );
     _dateOfJoiningController = TextEditingController(
       text: widget.faculty['date_of_joining']?.toString() ?? '',
-    );
-    _departmentController = TextEditingController(
-      text: widget.faculty['department']?.toString() ?? '',
     );
     _highestDegreeController = TextEditingController(
       text: widget.faculty['highest_degree']?.toString() ?? '',
@@ -1970,6 +1968,47 @@ class _EditFacultyScreenState extends State<EditFacultyScreen> {
         });
       }
     }
+
+    _selectedDepartment = widget.faculty['department']?.toString();
+    _fetchDepartments();
+  }
+
+  Future<void> _fetchDepartments() async {
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('academic').get();
+      final deptList = <String>[];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final deptName = data['department']?.toString();
+        if (deptName != null && deptName.isNotEmpty) {
+          deptList.add(deptName);
+        }
+      }
+      setState(() {
+        _departments = deptList.toSet().toList()..sort();
+        if (_selectedDepartment != null &&
+            !_departments.contains(_selectedDepartment)) {
+          _selectedDepartment =
+              _departments.isNotEmpty ? _departments.first : null;
+        }
+      });
+      if (deptList.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No departments found in academic collection'),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error fetching departments: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch departments: $e')),
+      );
+      setState(() {
+        _departments = [];
+      });
+    }
   }
 
   @override
@@ -1980,7 +2019,6 @@ class _EditFacultyScreenState extends State<EditFacultyScreen> {
     _ageController.dispose();
     _birthdayController.dispose();
     _dateOfJoiningController.dispose();
-    _departmentController.dispose();
     _highestDegreeController.dispose();
     _phoneController.dispose();
     _religionController.dispose();
@@ -2006,7 +2044,7 @@ class _EditFacultyScreenState extends State<EditFacultyScreen> {
               'age': int.parse(_ageController.text.trim()),
               'birthday': _birthdayController.text.trim(),
               'date_of_joining': _dateOfJoiningController.text.trim(),
-              'department': _departmentController.text.trim(),
+              'department': _selectedDepartment,
               'highest_degree': _highestDegreeController.text.trim(),
               'phone': _phoneController.text.trim(),
               'religion': _religionController.text.trim(),
@@ -2211,8 +2249,8 @@ class _EditFacultyScreenState extends State<EditFacultyScreen> {
                                     : null,
                       ),
                       const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _departmentController,
+                      DropdownButtonFormField<String>(
+                        value: _selectedDepartment,
                         decoration: InputDecoration(
                           labelText: 'Department',
                           border: OutlineInputBorder(
@@ -2221,10 +2259,24 @@ class _EditFacultyScreenState extends State<EditFacultyScreen> {
                           filled: true,
                           fillColor: Colors.grey[100],
                         ),
+                        items:
+                            _departments
+                                .map(
+                                  (dept) => DropdownMenuItem(
+                                    value: dept,
+                                    child: Text(dept),
+                                  ),
+                                )
+                                .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedDepartment = value;
+                          });
+                        },
                         validator:
                             (value) =>
-                                value?.trim().isEmpty ?? true
-                                    ? 'Please enter department'
+                                value == null
+                                    ? 'Please select a department'
                                     : null,
                       ),
                       const SizedBox(height: 16),

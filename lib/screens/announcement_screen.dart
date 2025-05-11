@@ -75,13 +75,27 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   }
 
   Future<void> _fetchClasses() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('timetables').get();
-    final classSet = <String>{};
-    for (var doc in snapshot.docs) {
-      classSet.add(doc.data()['class'] as String);
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('academic').get();
+      final classSet = <String>{};
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final deptClasses = List<String>.from(data['classes'] ?? []);
+        classSet.addAll(deptClasses);
+      }
+      setState(() {
+        _classes = classSet.toList()..sort();
+      });
+    } catch (e) {
+      print('Error fetching classes: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to fetch classes: $e')));
+      setState(() {
+        _classes = [];
+      });
     }
-    _classes = classSet.toList()..sort();
   }
 
   Future<void> _fetchFaculties() async {
@@ -92,14 +106,36 @@ class _AnnouncementScreenState extends State<AnnouncementScreen> {
   }
 
   Future<void> _fetchDepartments() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('faculty_members').get();
-    final deptSet = <String>{};
-    for (var doc in snapshot.docs) {
-      final dept = doc.data()['department'] as String?;
-      if (dept != null) deptSet.add(dept);
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('academic').get();
+      final deptSet = <String>{};
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final deptName = data['department']?.toString();
+        if (deptName != null && deptName.isNotEmpty) {
+          deptSet.add(deptName);
+        }
+      }
+      setState(() {
+        _departments = deptSet.toList()..sort();
+      });
+      if (deptSet.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No departments found in academic collection'),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error fetching departments: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch departments: $e')),
+      );
+      setState(() {
+        _departments = [];
+      });
     }
-    _departments = deptSet.toList()..sort();
   }
 
   Future<void> _postAnnouncement() async {
