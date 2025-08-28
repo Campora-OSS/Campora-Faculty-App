@@ -1,8 +1,8 @@
-# 👨‍🏫 Campora – Faculty App  
+# 👨‍🏫 Campora OSS – Faculty App  
 
 ![License](https://img.shields.io/badge/license-MIT-green)  
 ![Status](https://img.shields.io/badge/status-active-brightgreen)  
-![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-blue)  
+![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Web-blue)  
 
 ## 🚀 Overview  
 The **Campora Faculty App** is part of the open-source **Campora Institution Management System**. It empowers faculty members to manage academics, classes, and communication with students in a **single streamlined application**.  
